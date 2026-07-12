@@ -5,7 +5,8 @@
 ### Fixed
 
 - **Compile break** in agent tool-loop: restore `had_tools_last` for reasoning policy
-- Align workspace version with release tags; `cargo fmt` clean for CI
+- **Swarm workers:** omit `reasoning.effort` for models that reject it (`grok-code-fast-1` HTTP 400)
+- Align workspace version with release tags; `cargo fmt` / clippy clean for CI
 
 ### Docs
 

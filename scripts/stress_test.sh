@@ -308,11 +308,12 @@ fi
 END_TS=$(date +%s)
 DUR=$((END_TS-START_TS))
 
-# Summarize artifacts
+# Summarize artifacts (skip .git / target noise)
 ART_SUMMARY=$(
   {
-    echo "proj tree (depth 3):"
-    find "$PROJ" -maxdepth 3 -type f 2>/dev/null | head -80
+    echo "proj highlights:"
+    find "$PROJ" -maxdepth 3 -type f \
+      ! -path '*/.git/*' ! -path '*/target/*' 2>/dev/null | head -60
     echo ""
     if [[ -f "$PROJ/.aegis/metrics.json" ]]; then
       echo "metrics: $(cat "$PROJ/.aegis/metrics.json")"

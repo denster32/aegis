@@ -121,14 +121,27 @@ impl AgentLoop {
         specs
     }
 
-    fn reasoning_for_step(&self, step: usize, had_tools_last: bool) -> ReasoningConfig {
-        // First planning-ish step / after tools may need more thought; pure tool loops prefer low.
+    /// Whether this model accepts Responses `reasoning.effort` (grok-4.5 family).
+    /// Worker models like `grok-code-fast-1` return 400 if reasoning is sent.
+    fn model_supports_reasoning(model: &str) -> bool {
+        let m = model.to_ascii_lowercase();
+        m.contains("grok-4")
+            || m.contains("grok4")
+            || m.contains("reasoning")
+            || m.starts_with("grok-3")
+    }
+
+    fn reasoning_for_step(&self, step: usize, had_tools_last: bool) -> Option<ReasoningConfig> {
+        if !Self::model_supports_reasoning(self.model()) {
+            return None;
+        }
+        // First planning-ish step may need more thought; pure tool loops prefer low.
         let effort = if step <= 1 && !had_tools_last {
             self.config.reasoning_effort.as_str()
         } else {
             self.config.tool_reasoning_effort.as_str()
         };
-        ReasoningConfig::parse_effort(effort)
+        Some(ReasoningConfig::parse_effort(effort))
     }
 
     fn tool_context(&self) -> ToolContext {
@@ -200,14 +213,14 @@ impl AgentLoop {
                 parallel_tool_calls: Some(true),
                 text: None,
                 include: None,
-                reasoning: Some(reasoning.clone()),
+                reasoning: reasoning.clone(),
                 prompt_cache_key: Some(self.session_id.clone()),
             };
 
             debug!(
                 step = steps,
                 model = %self.model(),
-                reasoning = %reasoning.effort,
+                reasoning = reasoning.as_ref().map(|r| r.effort.as_str()).unwrap_or("none"),
                 cache_key = %self.session_id,
                 "agent step"
             );
@@ -465,6 +478,11 @@ impl AgentLoop {
             return Ok(hit);
         }
 
+        let reasoning = if Self::model_supports_reasoning(self.model()) {
+            Some(aegis_xai::ReasoningConfig::high())
+        } else {
+            None
+        };
         let req = CreateResponseRequest {
             model: self.model().to_string(),
             input,
@@ -484,7 +502,7 @@ impl AgentLoop {
                 },
             }),
             include: None,
-            reasoning: Some(aegis_xai::ReasoningConfig::high()),
+            reasoning: reasoning.clone(),
             prompt_cache_key: Some(format!("aegis-{}", std::process::id())),
         };
 
@@ -511,7 +529,7 @@ impl AgentLoop {
                     parallel_tool_calls: None,
                     text: None,
                     include: None,
-                    reasoning: Some(aegis_xai::ReasoningConfig::high()),
+                    reasoning,
                     prompt_cache_key: Some(format!("aegis-{}", std::process::id())),
                 };
                 self.client.create(fallback).await?

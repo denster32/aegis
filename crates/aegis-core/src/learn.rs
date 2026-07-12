@@ -161,7 +161,14 @@ impl LearnRuntime {
                 },
             }),
             include: None,
-            reasoning: Some(aegis_xai::ReasoningConfig::high()),
+            // Reflection uses boss model (grok-4.5); omit if ever pointed at code-fast.
+            reasoning: if model.to_ascii_lowercase().contains("grok-4")
+                || model.to_ascii_lowercase().contains("grok-3")
+            {
+                Some(aegis_xai::ReasoningConfig::high())
+            } else {
+                None
+            },
             prompt_cache_key: Some(format!("aegis-{}", std::process::id())),
         };
 

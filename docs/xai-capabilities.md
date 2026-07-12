@@ -20,13 +20,16 @@ See also: [Grok 4.5 docs](https://docs.x.ai/developers/grok-4-5)
 
 ## `--effort` mapping (now correct)
 
-| Flag | Model | Default reasoning | Tool-step reasoning |
-|------|-------|-------------------|---------------------|
-| high | grok-4.5 | high | medium |
-| medium | grok-4.5 | medium | **low** |
-| low | grok-4.5 | **low** | low |
+| Flag | Primary model | Default reasoning | Tool-step reasoning | Worker model |
+|------|---------------|-------------------|---------------------|--------------|
+| high | grok-4.5 | high | medium | grok-4.5 |
+| medium | grok-4.5 | medium | **low** | grok-code-fast-1 |
+| low | grok-4.5 | **low** | low | grok-code-fast-1 |
 
 xAI docs: tool-heavy agent loops should prefer **low** reasoning for latency; planning stays higher.
+
+**Important:** `reasoning.effort` is only sent for models that support it (`grok-4*` / `grok-3*`).  
+`grok-code-fast-1` (swarm workers) **rejects** `reasoningEffort` with HTTP 400 — Aegis omits the field for those models.
 
 ## Config (`.aegis/config.toml`)
 
