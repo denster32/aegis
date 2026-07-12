@@ -37,3 +37,9 @@
 .aegis/*.jsonl
 .aegis/metrics.json
 .aegis/nexus/
+
+# Runtime metrics (regenerated)
+.aegis/*.jsonl
+.aegis/metrics.json
+.aegis/nexus/
+.aegis/monitor-handoff.md
