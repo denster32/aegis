@@ -2,8 +2,10 @@ use aegis_auth::{
     auth_paths, clear_auth_file, device_login, import_grok_to_aegis, AuthProvider, TokenSource,
 };
 use aegis_core::{
-    missions_new, missions_run, missions_status, readiness_report, run_mission, run_plan,
-    AegisConfig, AgentLoop, Effort, MissionOptions,
+    assess_v2, automations, factory_status, format_factory, format_readiness_v2, generate_wiki,
+    install_dream_cron, install_qa, install_review_workflow, install_wiki_workflow, missions_new,
+    missions_run, missions_status, readiness_report, review_diff, review_pr, run_dream,
+    run_mission, run_plan, run_qa, AegisConfig, AgentLoop, DreamOptions, Effort, MissionOptions,
 };
 use aegis_memory::ProjectMemory;
 use aegis_store::{AegisPaths, Store};
@@ -91,8 +93,54 @@ enum Commands {
         #[command(subcommand)]
         action: MissionsCmd,
     },
-    /// Project readiness checklist
-    Readiness,
+    /// Project readiness checklist (use --v2 for L1–L5 pillars)
+    Readiness {
+        #[arg(long)]
+        json: bool,
+        #[arg(long, default_value_t = true)]
+        v2: bool,
+    },
+    /// Nightly dream — deep self-improve / reflect
+    Dream {
+        #[arg(long)]
+        apply: bool,
+        #[arg(long, default_value = "high")]
+        budget: String,
+        #[command(subcommand)]
+        action: Option<DreamCmd>,
+    },
+    /// Software Factory SDLC coverage map
+    Factory,
+    /// Project wiki generate / refresh
+    Wiki {
+        #[command(subcommand)]
+        action: WikiCmd,
+    },
+    /// Code review (PR or local diff)
+    Review {
+        #[arg(long)]
+        pr: Option<u64>,
+        #[arg(long)]
+        diff: bool,
+        #[arg(long, default_value = "deep")]
+        depth: String,
+    },
+    /// Install Automated QA skills
+    InstallQa,
+    /// Run Automated QA
+    Qa {
+        #[arg(long)]
+        base: Option<String>,
+    },
+    /// Install GH code-review workflow
+    InstallCodeReview,
+    /// Install GH wiki-refresh workflow
+    InstallWikiRefresh,
+    /// File-based automations
+    Automation {
+        #[command(subcommand)]
+        action: AutomationCmd,
+    },
     /// Project memory (learning)
     Memory {
         #[command(subcommand)]
@@ -171,6 +219,26 @@ enum MissionsCmd {
     },
 }
 
+#[derive(Subcommand, Debug)]
+enum DreamCmd {
+    /// Install nightly crontab + automation file
+    Install,
+}
+
+#[derive(Subcommand, Debug)]
+enum WikiCmd {
+    Generate,
+    Refresh,
+}
+
+#[derive(Subcommand, Debug)]
+enum AutomationCmd {
+    List,
+    Ensure,
+    Run { name: String },
+    InstallAll,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -200,8 +268,35 @@ async fn main() -> Result<()> {
             }
             return Ok(());
         }
-        Some(Commands::Readiness) => {
-            print!("{}", readiness_report(&cwd_early));
+        Some(Commands::Readiness { json, v2 }) => {
+            if *v2 {
+                let r = assess_v2(&cwd_early);
+                if *json {
+                    println!("{}", serde_json::to_string_pretty(&r)?);
+                } else {
+                    print!("{}", format_readiness_v2(&r));
+                }
+            } else {
+                print!("{}", readiness_report(&cwd_early));
+            }
+            return Ok(());
+        }
+        Some(Commands::Factory) => {
+            print!("{}", format_factory(&factory_status(&cwd_early)));
+            return Ok(());
+        }
+        Some(Commands::Automation {
+            action: AutomationCmd::List,
+        }) => {
+            let _ = automations::ensure_defaults(&cwd_early);
+            print!("{}", automations::format_list(&automations::list(&cwd_early)?));
+            return Ok(());
+        }
+        Some(Commands::Automation {
+            action: AutomationCmd::Ensure,
+        }) => {
+            automations::ensure_defaults(&cwd_early)?;
+            println!("default automations ensured under .aegis/automations/");
             return Ok(());
         }
         Some(Commands::Missions {
@@ -464,9 +559,100 @@ async fn main() -> Result<()> {
             let out = missions_run(agent, &id).await?;
             println!("{out}");
         }
+        Some(Commands::Dream {
+            action: Some(DreamCmd::Install),
+            ..
+        }) => {
+            let msg = install_dream_cron(&cwd, 3)?;
+            println!("{msg}");
+        }
+        Some(Commands::Dream {
+            apply,
+            budget,
+            action: None,
+        }) => {
+            let model = if budget == "low" {
+                "grok-4-fast".to_string()
+            } else {
+                config.model.clone()
+            };
+            let opts = DreamOptions {
+                apply_memory: true,
+                apply_code: apply,
+                budget_model: model,
+                max_proposals: 5,
+                refresh_wiki: true,
+            };
+            println!("{} starting dream…", style("◆").magenta());
+            let journal = run_dream(&agent.client, &cwd, opts).await?;
+            println!(
+                "Dream {} complete. Applied: {:?}\nProposals: {}",
+                journal.id,
+                journal.applied,
+                journal.proposals.len()
+            );
+            for p in &journal.proposals {
+                println!("  • [{}] {}", p.kind, p.title);
+            }
+            println!("Journal under .aegis/dreams/");
+        }
+        Some(Commands::Wiki { action }) => {
+            let model = config.model.clone();
+            match action {
+                WikiCmd::Generate | WikiCmd::Refresh => {
+                    let n = generate_wiki(&cwd, &agent.client, &model).await?;
+                    println!("Wrote {n} wiki pages under docs/wiki/");
+                }
+            }
+        }
+        Some(Commands::Review { pr, diff, depth }) => {
+            let model = config.model.clone();
+            let report = if let Some(n) = pr {
+                review_pr(&agent.client, &model, &cwd, n, &depth).await?
+            } else if diff {
+                review_diff(&agent.client, &model, &cwd, &depth).await?
+            } else {
+                anyhow::bail!("pass --pr N or --diff");
+            };
+            println!("{}\napprove={}", report.summary, report.approve);
+            for f in &report.findings {
+                println!("  [{}] {} — {}", f.severity, f.title, f.detail);
+            }
+        }
+        Some(Commands::InstallQa) => {
+            println!("{}", install_qa(&cwd)?);
+        }
+        Some(Commands::Qa { base }) => {
+            println!("{}", run_qa(&cwd, base.as_deref())?);
+        }
+        Some(Commands::InstallCodeReview) => {
+            let p = install_review_workflow(&cwd)?;
+            println!("wrote {}", p.display());
+        }
+        Some(Commands::InstallWikiRefresh) => {
+            let p = install_wiki_workflow(&cwd)?;
+            println!("wrote {}", p.display());
+        }
+        Some(Commands::Automation {
+            action: AutomationCmd::Run { name },
+        }) => {
+            println!("{}", automations::run(&cwd, &name)?);
+        }
+        Some(Commands::Automation {
+            action: AutomationCmd::InstallAll,
+        }) => {
+            automations::ensure_defaults(&cwd)?;
+            let _ = install_dream_cron(&cwd, 3)?;
+            let _ = install_review_workflow(&cwd);
+            let _ = install_wiki_workflow(&cwd);
+            let _ = install_qa(&cwd);
+            println!("installed automations + default workflows/skills");
+        }
         Some(Commands::Missions { .. })
         | Some(Commands::Memory { .. })
-        | Some(Commands::Readiness)
+        | Some(Commands::Readiness { .. })
+        | Some(Commands::Factory)
+        | Some(Commands::Automation { .. })
         | Some(Commands::Session { .. })
         | Some(Commands::Login { .. })
         | Some(Commands::Logout)

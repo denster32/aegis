@@ -1,0 +1,7 @@
+name = "nightly-dream"
+trigger = "schedule"
+cron = "0 3 * * *"
+command = "dream"
+args = ["--apply"]
+enabled = true
+stage = "monitor"

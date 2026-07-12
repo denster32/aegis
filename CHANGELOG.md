@@ -1,4 +1,13 @@
 # Changelog
+## 0.3.0 — 2026-07-12
+
+### Added
+
+- Nightly dream (`aegis dream`)
+- Readiness v2 L1–L5 pillars
+- Software Factory map
+- Wiki, QA, code review, automations
+
 
 ## 0.2.0 — 2026-07-12
 

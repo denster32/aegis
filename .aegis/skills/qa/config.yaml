@@ -1,0 +1,7 @@
+project: aegis
+default_target: local
+apps:
+  primary:
+    skill: qa-cli
+    test_command: cargo test
+failure_learning: suggest_in_report

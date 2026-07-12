@@ -1,0 +1,6 @@
+name = "wiki-refresh"
+trigger = "manual"
+command = "wiki"
+args = ["generate"]
+enabled = true
+stage = "document"

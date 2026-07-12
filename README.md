@@ -110,3 +110,17 @@ Flags: `--effort low|medium|high`, `--yolo`, `--cwd`, `--session`, `--no-learn`,
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Platform (Factory-inspired)
+
+| Command | Purpose |
+|---------|---------|
+| `aegis dream` | Nightly deep self-improve |
+| `aegis readiness` | L1–L5 agent readiness |
+| `aegis factory` | SDLC coverage map |
+| `aegis wiki generate` | AutoWiki-style docs |
+| `aegis review --pr N` | PR code review |
+| `aegis install-qa` / `aegis qa` | Automated QA |
+| `aegis automation list` | Scheduled/event automations |
+
+See `docs/dream.md`, `docs/factory.md`, `docs/readiness.md`.

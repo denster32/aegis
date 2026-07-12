@@ -1,0 +1,40 @@
+{
+  "stages": [
+    {
+      "name": "Triage",
+      "healthy": false,
+      "coverage": "none",
+      "detail": "Issue intake / routing automations"
+    },
+    {
+      "name": "Code-gen",
+      "healthy": true,
+      "coverage": "aegis agent/missions",
+      "detail": "Agent + Missions available"
+    },
+    {
+      "name": "Validate",
+      "healthy": false,
+      "coverage": "review=false qa=false",
+      "detail": "Code review + QA"
+    },
+    {
+      "name": "Release",
+      "healthy": true,
+      "coverage": "docs",
+      "detail": "Release workflows / changelog"
+    },
+    {
+      "name": "Document",
+      "healthy": false,
+      "coverage": "none",
+      "detail": "AutoWiki / docs/wiki"
+    },
+    {
+      "name": "Monitor",
+      "healthy": false,
+      "coverage": "none",
+      "detail": "Nightly dream / monitoring automations"
+    }
+  ]
+}

@@ -12,3 +12,5 @@
 .idea/
 .vscode/
 *.swp
+.aegis/dream.lock
+.aegis/qa/evidence/

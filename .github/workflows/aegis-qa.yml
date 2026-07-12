@@ -1,0 +1,15 @@
+name: Aegis QA
+on:
+  pull_request:
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --workspace
+        continue-on-error: true
+      - name: Aegis QA
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+        run: aegis qa || true
