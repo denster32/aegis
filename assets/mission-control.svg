@@ -1,18 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" role="img" aria-label="Mission Control">
-  <rect width="800" height="480" fill="#020617"/>
-  <rect x="24" y="24" width="752" height="432" rx="12" fill="#0f172a" stroke="#1e293b"/>
-  <text x="48" y="64" fill="#7dd3fc" font-family="monospace" font-size="18">MISSION CONTROL</text>
-  <text x="48" y="96" fill="#94a3b8" font-family="monospace" font-size="14">status: Running · milestone: m2-api</text>
-  <rect x="48" y="120" width="340" height="280" rx="8" fill="#020617" stroke="#334155"/>
-  <text x="64" y="148" fill="#e2e8f0" font-family="monospace" font-size="14">MILESTONES</text>
-  <text x="64" y="180" fill="#4ade80" font-family="monospace" font-size="13">✓ m1 scaffold</text>
-  <text x="64" y="208" fill="#facc15" font-family="monospace" font-size="13">▶ m2 api</text>
-  <text x="64" y="236" fill="#64748b" font-family="monospace" font-size="13">· m3 ui</text>
-  <text x="64" y="264" fill="#64748b" font-family="monospace" font-size="13">· m4 ship</text>
-  <rect x="412" y="120" width="340" height="280" rx="8" fill="#020617" stroke="#334155"/>
-  <text x="428" y="148" fill="#e2e8f0" font-family="monospace" font-size="14">FEATURES</text>
-  <text x="428" y="180" fill="#4ade80" font-family="monospace" font-size="13">✓ routes</text>
-  <text x="428" y="208" fill="#facc15" font-family="monospace" font-size="13">▶ auth middleware</text>
-  <text x="428" y="236" fill="#64748b" font-family="monospace" font-size="13">· rate limit</text>
-  <text x="428" y="264" fill="#64748b" font-family="monospace" font-size="13">· tests</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="Mission Control">
+  <rect width="720" height="360" fill="#000000"/>
+  <text x="40" y="48" fill="#ffffff" font-family="ui-sans-serif,system-ui,sans-serif"
+        font-size="14" font-weight="600" letter-spacing="0.22em">MISSION CONTROL</text>
+  <line x1="40" y1="62" x2="680" y2="62" stroke="#ffffff" stroke-opacity="0.2" stroke-width="1"/>
+  <text x="40" y="90" fill="#ffffff" fill-opacity="0.45" font-family="ui-monospace,Menlo,monospace" font-size="12">
+    status  RUNNING · milestone  m2-api · id  a1b2c3d4
+  </text>
+
+  <!-- left panel -->
+  <rect x="40" y="112" width="300" height="200" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="1"/>
+  <text x="56" y="140" fill="#ffffff" fill-opacity="0.4" font-family="ui-sans-serif,system-ui,sans-serif"
+        font-size="11" letter-spacing="0.18em">MILESTONES</text>
+  <g font-family="ui-monospace,Menlo,monospace" font-size="13">
+    <text x="56" y="172" fill="#ffffff"><tspan fill-opacity="1">●</tspan>  01  scaffold</text>
+    <text x="56" y="200" fill="#ffffff"><tspan fill-opacity="1">▸</tspan>  02  api</text>
+    <text x="56" y="228" fill="#ffffff" fill-opacity="0.35">·  03  ui</text>
+    <text x="56" y="256" fill="#ffffff" fill-opacity="0.35">·  04  ship</text>
+  </g>
+
+  <!-- right panel -->
+  <rect x="360" y="112" width="320" height="200" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="1"/>
+  <text x="376" y="140" fill="#ffffff" fill-opacity="0.4" font-family="ui-sans-serif,system-ui,sans-serif"
+        font-size="11" letter-spacing="0.18em">FEATURES</text>
+  <g font-family="ui-monospace,Menlo,monospace" font-size="13">
+    <text x="376" y="172" fill="#ffffff">●  routes</text>
+    <text x="376" y="200" fill="#ffffff">▸  auth middleware</text>
+    <text x="376" y="228" fill="#ffffff" fill-opacity="0.35">·  rate limit</text>
+    <text x="376" y="256" fill="#ffffff" fill-opacity="0.35">·  tests</text>
+  </g>
 </svg>

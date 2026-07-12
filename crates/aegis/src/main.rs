@@ -52,9 +52,10 @@ impl XaiTokenSource for AuthBridge {
     name = "aegis",
     version,
     about = "Sovereign Grok coding agent",
-    long_about = "AEGIS — sovereign Grok-native coding agent.\n\
-                  Black · white · precise. Tools, Missions, learning.",
-    styles = clap_styles()
+    long_about = "AEGIS — sovereign Grok-native coding agent in Rust.\n\
+                  Black · white · precise. Tools · Missions · learning.",
+    styles = clap_styles(),
+    after_help = "Docs · https://github.com/denster32/aegis"
 )]
 struct Cli {
     /// One-shot prompt (non-interactive)

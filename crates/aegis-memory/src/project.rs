@@ -208,20 +208,20 @@ impl ProjectMemory {
             .last_run_at
             .clone()
             .unwrap_or_else(|| "—".into());
-        // Monochrome key/value layout (SpaceX / xAI).
+        // Monochrome key/value layout (SpaceX / xAI) — 14-char keys, aligned with CLI ui::kv.
         Ok(format!(
             "MEMORY\n\
-             ────────────────────────────────────────────────────────\n\
-               project        {}\n\
-               store          {}\n\
-               runs           {}\n\
-               lessons        {lessons}\n\
-               failures       {failures}\n\
-               skills         {skills}\n\
-               memory.md      {mem_len} B\n\
-               heal           {}/{}\n\
-               last_run       {last}\n\
-             ────────────────────────────────────────────────────────\n",
+             ────────────────────────────────────────────────────\n\
+              project         {}\n\
+              store           {}\n\
+              runs            {}\n\
+              lessons         {lessons}\n\
+              failures        {failures}\n\
+              skills          {skills}\n\
+              memory.md       {mem_len} B\n\
+              heal            {}/{}\n\
+              last_run        {last}\n\
+             ────────────────────────────────────────────────────\n",
             self.paths.root.display(),
             self.paths.aegis_dir.display(),
             self.metrics.run_count,

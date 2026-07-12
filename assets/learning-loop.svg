@@ -1,18 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" role="img">
-  <rect width="720" height="280" fill="#0f172a" rx="16"/>
-  <g font-family="ui-sans-serif,system-ui,sans-serif" font-size="16" fill="#e2e8f0">
-    <rect x="40" y="90" width="120" height="60" rx="10" fill="#1e293b" stroke="#38bdf8"/>
-    <text x="100" y="125" text-anchor="middle">Run</text>
-    <path d="M170 120 H210" stroke="#38bdf8" stroke-width="3" marker-end="url(#a)"/>
-    <rect x="220" y="90" width="120" height="60" rx="10" fill="#1e293b" stroke="#f472b6"/>
-    <text x="280" y="125" text-anchor="middle">Heal</text>
-    <path d="M350 120 H390" stroke="#38bdf8" stroke-width="3"/>
-    <rect x="400" y="90" width="120" height="60" rx="10" fill="#1e293b" stroke="#a78bfa"/>
-    <text x="460" y="125" text-anchor="middle">Reflect</text>
-    <path d="M530 120 H570" stroke="#38bdf8" stroke-width="3"/>
-    <rect x="580" y="90" width="100" height="60" rx="10" fill="#1e293b" stroke="#4ade80"/>
-    <text x="630" y="125" text-anchor="middle">Memory</text>
-    <path d="M630 160 V200 H100 V150" stroke="#64748b" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
-    <text x="360" y="230" text-anchor="middle" fill="#94a3b8" font-size="14">next run injects lessons · project gets smarter</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" role="img" aria-label="Learning loop">
+  <rect width="720" height="240" fill="#000000" rx="0"/>
+  <g font-family="ui-sans-serif,system-ui,sans-serif" font-size="14" fill="#ffffff">
+    <!-- nodes -->
+    <rect x="36" y="84" width="118" height="52" rx="2" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.5"/>
+    <text x="95" y="115" text-anchor="middle" letter-spacing="0.12em" font-size="13">RUN</text>
+
+    <line x1="154" y1="110" x2="198" y2="110" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1"/>
+    <polygon points="198,110 190,106 190,114" fill="#ffffff" fill-opacity="0.55"/>
+
+    <rect x="204" y="84" width="118" height="52" rx="2" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.5"/>
+    <text x="263" y="115" text-anchor="middle" letter-spacing="0.12em" font-size="13">HEAL</text>
+
+    <line x1="322" y1="110" x2="366" y2="110" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1"/>
+    <polygon points="366,110 358,106 358,114" fill="#ffffff" fill-opacity="0.55"/>
+
+    <rect x="372" y="84" width="118" height="52" rx="2" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.5"/>
+    <text x="431" y="115" text-anchor="middle" letter-spacing="0.12em" font-size="13">REFLECT</text>
+
+    <line x1="490" y1="110" x2="534" y2="110" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1"/>
+    <polygon points="534,110 526,106 526,114" fill="#ffffff" fill-opacity="0.55"/>
+
+    <rect x="540" y="84" width="140" height="52" rx="2" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-width="1.5"/>
+    <text x="610" y="115" text-anchor="middle" letter-spacing="0.12em" font-size="13">MEMORY</text>
+
+    <!-- feedback path -->
+    <path d="M610 136 V176 H95 V136" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="4 4"/>
+    <text x="360" y="208" text-anchor="middle" fill="#ffffff" fill-opacity="0.4" font-size="12" letter-spacing="0.16em">
+      NEXT RUN INJECTS LESSONS
+    </text>
   </g>
 </svg>

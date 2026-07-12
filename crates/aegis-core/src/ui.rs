@@ -6,7 +6,7 @@
 use console::style;
 
 /// Preferred content width for boards and headers.
-pub const WIDTH: usize = 56;
+pub const WIDTH: usize = 52;
 
 // ── primitives ──────────────────────────────────────────────
 
@@ -153,7 +153,7 @@ pub fn repl_banner(
 ) -> String {
     let mode = if yolo { "yolo" } else { "prompt" };
     format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n  {}\n",
+        "\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n  {}\n\n",
         wordmark(version),
         rule(),
         kv("session", session8),
@@ -162,7 +162,7 @@ pub fn repl_banner(
         kv("mode", mode),
         kv("cwd", cwd),
         rule(),
-        style("/plan  /mission  /missions  /memory  /yolo  /cost  /compact  /model  /clear  /quit")
+        style("/plan · /mission · /missions · /memory · /yolo · /cost · /compact · /model · /clear · /quit")
             .dim()
     )
 }
@@ -204,12 +204,12 @@ pub fn auth_unsigned(detail: &str) -> String {
 /// One-shot run header (non-interactive -p).
 pub fn run_header(model: &str, effort: &str, session8: &str) -> String {
     format!(
-        "{}  {}  {}  {}\n{}\n",
+        "\n{}  {}  {}  {}\n{}\n",
         style("AEGIS").bold().white(),
         style(model).dim(),
         style(effort).dim(),
         style(session8).dim(),
-        rule_w(40)
+        rule_w(48)
     )
 }
 
