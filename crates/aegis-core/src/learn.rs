@@ -64,6 +64,20 @@ impl LearnRuntime {
             ));
         }
 
+        // Permission / membrane failures: do not thrash retries — guide mode change.
+        if is_permission_block(tool, error) {
+            return Some(format!(
+                "SELF-HEAL (permission / membrane):\n\
+                 Tool `{tool}` was blocked:\n{}\n\
+                 Do NOT spam the same tool. Instead:\n\
+                 1. Prefer non-shell tools (read_file, write_file, edit_file, glob, grep) when possible.\n\
+                 2. Tell the user to enable YOLO (`/yolo` in REPL or `--yolo`) if shell is required.\n\
+                 3. For full product stress, instruct: `aegis smoke` then `aegis stress` (or STRESS_LONG=1).\n\
+                 4. Sandbox sessions cannot use bash — drop `--sandbox` for shell work.",
+                truncate(error, 600)
+            ));
+        }
+
         let failures = self.memory.load_failures().unwrap_or_default();
         if let Some(known) = find_known_fix(&failures, &fp, 0.55) {
             info!(%fp, "known fix for tool error");
@@ -259,6 +273,23 @@ fn truncate(s: &str, n: usize) -> String {
     crate::utf8_truncate(s, n)
 }
 
+/// Shell/FS membrane blocks — heal should redirect, not retry forever.
+fn is_permission_block(tool: &str, error: &str) -> bool {
+    let e = error.to_ascii_lowercase();
+    if e.contains("denied by user")
+        || e.contains("disabled in sandbox")
+        || e.contains("bash blocked")
+        || e.contains("fails closed")
+        || e.contains("permission denied")
+        || e.contains("outside cwd")
+        || e.contains("sandbox mode")
+    {
+        return true;
+    }
+    // bash tool name + generic deny language
+    tool == "bash" && (e.contains("denied") || e.contains("disabled") || e.contains("blocked"))
+}
+
 fn extract_json(text: &str) -> Option<String> {
     let t = text.trim();
     if t.starts_with('{') {
@@ -364,5 +395,26 @@ mod tests {
             learn.note(format!("line {i}"));
         }
         assert!(learn.transcript.len() <= 200);
+    }
+
+    #[test]
+    fn permission_block_heal_redirects() {
+        let dir = tempdir().unwrap();
+        let mut learn = LearnRuntime::open(dir.path(), true).unwrap();
+        let msg = learn
+            .on_tool_error("bash", "bash denied by user (prompt mode)")
+            .expect("heal");
+        assert!(
+            msg.contains("permission") || msg.contains("YOLO") || msg.contains("yolo"),
+            "{msg}"
+        );
+        assert!(
+            msg.contains("aegis stress") || msg.contains("/yolo"),
+            "{msg}"
+        );
+        assert!(is_permission_block(
+            "bash",
+            "bash disabled in sandbox mode (--sandbox)"
+        ));
     }
 }

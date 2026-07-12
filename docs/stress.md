@@ -3,12 +3,17 @@
 Live multi-phase harness against Grok OAuth.
 
 ```bash
+aegis stress                      # preferred — no agent loop; runs scripts/stress_test.sh
+aegis stress --long=false         # skip S15–S20 long band
+aegis smoke                       # lighter live smoke
+# or scripts directly:
 ./scripts/stress_test.sh
-# shorter (skip S15–S20 long band; still runs S21–S27):
 STRESS_LONG=0 ./scripts/stress_test.sh
 ```
 
 Requires `aegis auth status` OK. Unsets `XAI_API_KEY` so a spent console key cannot override subscription OAuth.
+
+**Tip:** if the agent REPL denies bash (prompt mode), do **not** thrash tools — type `/yolo` or run `aegis stress` outside the loop.
 
 **Hard-fail policy (0.8.0+):** every phase needs full success criteria. No soft-pass on partial artifacts.
 

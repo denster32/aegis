@@ -55,6 +55,8 @@ aegis missions run <id>
 | `aegis automation list\|ensure\|run` | Scheduled/event automations |
 | `aegis install-code-review` | Install code-review automation |
 | `aegis install-wiki-refresh` | Install wiki-refresh workflow |
+| `aegis smoke` | Live smoke harness (no agent loop) |
+| `aegis stress` | Live stress S0–S27 (no agent loop) |
 
 ## Nexus
 
@@ -74,8 +76,9 @@ See [Nexus](Nexus.md).
 cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo build --workspace
-./scripts/live_smoke.sh
-./scripts/stress_test.sh
+aegis smoke
+aegis stress
+# or: ./scripts/live_smoke.sh · ./scripts/stress_test.sh
 ```
 
 QA workflow: `.github/workflows/aegis-qa.yml`.

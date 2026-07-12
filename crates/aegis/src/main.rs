@@ -200,6 +200,14 @@ enum Commands {
     InstallCodeReview,
     /// Install GH wiki-refresh workflow
     InstallWikiRefresh,
+    /// Live smoke harness (`scripts/live_smoke.sh`) — no agent loop
+    Smoke,
+    /// Live stress harness (`scripts/stress_test.sh`) — no agent loop
+    Stress {
+        /// Run S15–S20 long band (default true; set STRESS_LONG=0 to skip)
+        #[arg(long, default_value_t = true)]
+        long: bool,
+    },
 
     // ── Nexus ──────────────────────────────────────────────
     /// Nexus organism status (cells · membrane · summary)
@@ -416,6 +424,13 @@ async fn main() -> Result<()> {
         Some(Commands::Factory) => {
             print!("{}", format_factory(&factory_status(&cwd_early)));
             return Ok(());
+        }
+        Some(Commands::Smoke) => {
+            return run_harness_script(&cwd_early, "live_smoke.sh", &[]);
+        }
+        Some(Commands::Stress { long }) => {
+            let long_env = if *long { "1" } else { "0" };
+            return run_harness_script(&cwd_early, "stress_test.sh", &[("STRESS_LONG", long_env)]);
         }
         Some(Commands::Nexus { action }) => {
             let _ = action;
@@ -1123,6 +1138,8 @@ async fn main() -> Result<()> {
         | Some(Commands::Memory { .. })
         | Some(Commands::Readiness { .. })
         | Some(Commands::Factory)
+        | Some(Commands::Smoke)
+        | Some(Commands::Stress { .. })
         | Some(Commands::Automation { .. })
         | Some(Commands::Session { .. })
         | Some(Commands::Login { .. })
@@ -1448,4 +1465,58 @@ fn nexus_status(cwd: &std::path::Path, sandbox_flag: bool) -> Result<String> {
         ui::dim("evolve · spore · compress · hardware · --sandbox")
     );
     Ok(s)
+}
+
+/// Run repo harness scripts without entering the agent loop (no auth required).
+fn run_harness_script(
+    cwd: &std::path::Path,
+    script_name: &str,
+    extra_env: &[(&str, &str)],
+) -> Result<()> {
+    let script = find_harness_script(cwd, script_name).with_context(|| {
+        format!(
+            "could not find scripts/{script_name} under {} (run from the aegis checkout)",
+            cwd.display()
+        )
+    })?;
+    println!("{}", ui::header("harness"));
+    println!("{}", ui::kv("script", script.display().to_string()));
+    for (k, v) in extra_env {
+        println!("{}", ui::kv(k, *v));
+    }
+    let mut cmd = std::process::Command::new("bash");
+    cmd.arg(&script).current_dir(cwd);
+    // Prefer the currently running binary for nested aegis calls.
+    if let Ok(exe) = std::env::current_exe() {
+        cmd.env("AEGIS", exe);
+    }
+    for (k, v) in extra_env {
+        cmd.env(k, v);
+    }
+    let status = cmd
+        .status()
+        .with_context(|| format!("spawn {}", script.display()))?;
+    if !status.success() {
+        anyhow::bail!(
+            "{script_name} failed with {}",
+            status
+                .code()
+                .map(|c| format!("exit {c}"))
+                .unwrap_or_else(|| "signal".into())
+        );
+    }
+    Ok(())
+}
+
+fn find_harness_script(cwd: &std::path::Path, name: &str) -> Option<std::path::PathBuf> {
+    let mut candidates = vec![cwd.join("scripts").join(name), cwd.join(name)];
+    // Walk up a few parents (run from crates/* etc.)
+    let mut cur = cwd.to_path_buf();
+    for _ in 0..4 {
+        if let Some(p) = cur.parent() {
+            cur = p.to_path_buf();
+            candidates.push(cur.join("scripts").join(name));
+        }
+    }
+    candidates.into_iter().find(|p| p.is_file())
 }

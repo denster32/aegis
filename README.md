@@ -78,6 +78,8 @@ aegis missions run <id>
 | `aegis factory` | SDLC coverage map |
 | `aegis dream` | Nightly self-improve |
 | `aegis wiki *` | AutoWiki |
+| `aegis smoke` | Live smoke harness (no agent loop) |
+| `aegis stress` | Live stress S0–S27 (no agent loop) |
 | `aegis review` | PR / local diff |
 | `aegis qa` | Automated QA |
 | `aegis automation *` | Schedules / events |

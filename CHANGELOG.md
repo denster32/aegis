@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Agent / harness UX
+
+- **Bash deny messages** — sandbox, user deny, and non-interactive Prompt fail-closed each return actionable hints (`/yolo`, `--yolo`, `aegis stress`)
+- **Permission heal** — self-heal redirects on membrane blocks instead of retry thrash
+- **`aegis smoke` / `aegis stress`** — first-class harness entrypoints (no auth, no agent loop)
+
 ## 0.8.0 — 2026-07-12
 
 ### Bulletproof reliability

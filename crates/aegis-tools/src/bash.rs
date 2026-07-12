@@ -49,12 +49,27 @@ impl Tool for BashTool {
 
         // Sandbox (`PermissionMode::Deny`): bash is fully disabled — no allowlist.
         if matches!(ctx.permission, PermissionMode::Deny) {
-            return ToolResult::err("bash disabled in sandbox mode");
+            return ToolResult::err(
+                "bash disabled in sandbox mode (--sandbox). \
+                 Re-run without --sandbox, or use non-shell tools (read/write/edit/glob/grep). \
+                 For release stress: `aegis stress` / `aegis smoke` outside the agent loop.",
+            );
         }
-        if matches!(ctx.permission, PermissionMode::Prompt)
-            && !ctx.approve(&format!("run bash: {command}"))
-        {
-            return ToolResult::err("bash denied by user");
+        if matches!(ctx.permission, PermissionMode::Prompt) {
+            if ctx.ask.is_none() {
+                return ToolResult::err(
+                    "bash blocked: interactive prompt mode has no ask callback \
+                     (non-interactive Prompt fails closed). Use --yolo for unattended shell, \
+                     or run `aegis stress` / `aegis smoke` as standalone commands.",
+                );
+            }
+            if !ctx.approve(&format!("run bash: {command}")) {
+                return ToolResult::err(
+                    "bash denied by user (prompt mode). \
+                     Type y at the next approval, enable YOLO with /yolo in the REPL or --yolo on CLI, \
+                     or run harnesses outside the agent: `aegis stress` / `aegis smoke`.",
+                );
+            }
         }
 
         let mut child = match Command::new("bash")
@@ -142,6 +157,32 @@ mod tests {
         assert!(!r.ok);
         assert!(
             r.output.contains("sandbox") || r.output.contains("disabled"),
+            "{}",
+            r.output
+        );
+        assert!(
+            r.output.contains("aegis stress") || r.output.contains("smoke"),
+            "actionable hint expected: {}",
+            r.output
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn prompt_without_ask_fails_closed_with_hint() {
+        let dir = std::env::temp_dir().join(format!(
+            "aegis-bash-prompt-{}-{}",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        ));
+        let _ = std::fs::create_dir_all(&dir);
+        let ctx = ToolContext::new(dir.clone(), "test".into(), PermissionMode::Prompt);
+        assert!(ctx.ask.is_none());
+        let tool = BashTool;
+        let r = tool.call(json!({"command": "echo no"}), &ctx).await;
+        assert!(!r.ok);
+        assert!(
+            r.output.contains("fails closed") || r.output.contains("--yolo"),
             "{}",
             r.output
         );
