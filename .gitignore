@@ -32,3 +32,8 @@
 .idea/
 .vscode/
 *.swp
+
+# Runtime metrics (regenerated)
+.aegis/*.jsonl
+.aegis/metrics.json
+.aegis/nexus/
