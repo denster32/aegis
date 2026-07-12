@@ -1,0 +1,15 @@
+[package]
+name = "aegis-swarm"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+aegis-store.workspace = true
+anyhow.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true

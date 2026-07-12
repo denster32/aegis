@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Aegis">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7dd3fc"/>
+      <stop offset="50%" style="stop-color:#38bdf8"/>
+      <stop offset="100%" style="stop-color:#0ea5e9"/>
+    </linearGradient>
+    <linearGradient id="s" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e293b"/>
+      <stop offset="100%" style="stop-color:#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="48" fill="url(#s)"/>
+  <!-- shield -->
+  <path d="M128 36 L208 68 V128 C208 176 168 212 128 228 C88 212 48 176 48 128 V68 Z"
+        fill="none" stroke="url(#g)" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M128 56 L188 80 V128 C188 164 158 192 128 204 C98 192 68 164 68 128 V80 Z"
+        fill="url(#g)" opacity="0.15"/>
+  <!-- A -->
+  <path d="M96 176 L128 88 L160 176 M108 148 H148"
+        fill="none" stroke="#f8fafc" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

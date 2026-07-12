@@ -1,0 +1,28 @@
+[package]
+name = "aegis"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "aegis"
+path = "src/main.rs"
+
+[dependencies]
+aegis-auth.workspace = true
+aegis-core.workspace = true
+aegis-mcp.workspace = true
+aegis-memory.workspace = true
+aegis-store.workspace = true
+aegis-tools.workspace = true
+aegis-xai.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+clap.workspace = true
+console.workspace = true
+directories.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+toml.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

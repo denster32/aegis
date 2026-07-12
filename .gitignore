@@ -1,0 +1,14 @@
+/target
+**/*.rs.bk
+.env
+.env.*
+!.env.example
+# local project learning (do not commit secrets); allow example layouts
+**/.aegis/auth.json
+**/.aegis/runs/
+*.db
+*.db-*
+.DS_Store
+.idea/
+.vscode/
+*.swp

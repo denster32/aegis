@@ -1,0 +1,17 @@
+[package]
+name = "aegis-memory"
+version.workspace = true
+edition.workspace = true
+description = "Per-project memory, self-heal, and reflection for Aegis"
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+hex.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+uuid.workspace = true
