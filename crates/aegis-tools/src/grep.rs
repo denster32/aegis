@@ -137,3 +137,85 @@ fn simple_glob_match(pat: &str, name: &str) -> bool {
     }
     name == pat
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::registry::{PermissionMode, ToolContext};
+    use serde_json::json;
+
+    #[tokio::test]
+    async fn grep_finds_basic_match() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.rs"), "fn hello_world() {}\n").unwrap();
+        std::fs::write(dir.path().join("b.txt"), "nope\n").unwrap();
+        let ctx = ToolContext::new(
+            dir.path().to_path_buf(),
+            "test".into(),
+            PermissionMode::Yolo,
+        );
+        let out = GrepTool.call(json!({"pattern": "hello_world"}), &ctx).await;
+        assert!(out.ok, "{}", out.output);
+        assert!(out.output.contains("hello_world"));
+        assert!(out.output.contains("a.rs"));
+    }
+
+    #[tokio::test]
+    async fn grep_no_matches() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), "alpha beta\n").unwrap();
+        let ctx = ToolContext::new(
+            dir.path().to_path_buf(),
+            "test".into(),
+            PermissionMode::Yolo,
+        );
+        let out = GrepTool
+            .call(json!({"pattern": "zzz_not_found"}), &ctx)
+            .await;
+        assert!(out.ok);
+        assert!(out.output.contains("no matches"));
+    }
+
+    #[tokio::test]
+    async fn grep_glob_filter() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("keep.rs"), "marker_xyz\n").unwrap();
+        std::fs::write(dir.path().join("skip.txt"), "marker_xyz\n").unwrap();
+        let ctx = ToolContext::new(
+            dir.path().to_path_buf(),
+            "test".into(),
+            PermissionMode::Yolo,
+        );
+        let out = GrepTool
+            .call(json!({"pattern": "marker_xyz", "glob": "*.rs"}), &ctx)
+            .await;
+        assert!(out.ok, "{}", out.output);
+        assert!(out.output.contains("keep.rs"));
+        assert!(!out.output.contains("skip.txt"));
+    }
+
+    #[tokio::test]
+    async fn grep_invalid_regex() {
+        let dir = tempfile::tempdir().unwrap();
+        let ctx = ToolContext::new(
+            dir.path().to_path_buf(),
+            "test".into(),
+            PermissionMode::Yolo,
+        );
+        let out = GrepTool
+            .call(json!({"pattern": "[unterminated"}), &ctx)
+            .await;
+        assert!(!out.ok);
+        assert!(out.output.contains("invalid regex"));
+    }
+
+    #[test]
+    fn simple_glob_match_cases() {
+        assert!(simple_glob_match("*", "any.rs"));
+        assert!(simple_glob_match("*.rs", "foo.rs"));
+        assert!(!simple_glob_match("*.rs", "foo.txt"));
+        assert!(simple_glob_match("foo*", "foobar"));
+        assert!(simple_glob_match("exact", "exact"));
+        assert!(!simple_glob_match("exact", "other"));
+    }
+}

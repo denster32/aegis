@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.6.0 — 2026-07-12
+
+### Sandbox (multi-tenant-style tool isolation)
+
+- Global **`--sandbox`** → `PermissionMode::Deny` (wins over YOLO / auto-yolo)
+- Bash fully denied; read/write/edit workspace-only (no outside-cwd escape)
+- Hardened `web_fetch` private IP / host blocking
+- Workers inherit sandbox from boss missions
+- Documented in SECURITY.md + features.md
+
+### Tests
+
+- Unit suite **13 → ~95** covering store, auth, tools, xai types, core config/factory/readiness, swarm DAG, memory redact
+
+### CI
+
+- Core CI: rust-cache, `fmt`, `test --locked`, `clippy -D warnings --locked`, `build --release --locked`
+- QA workflow: unit tests fail the job; live QA only if `XAI_API_KEY` secret present
+- `workflow_dispatch` on CI and QA
+
 ## 0.5.2 — 2026-07-12
 
 ### Final release polish

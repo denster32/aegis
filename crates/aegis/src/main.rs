@@ -74,6 +74,10 @@ struct Cli {
     #[arg(long, global = true)]
     yolo: bool,
 
+    /// Sandbox: deny shell; workspace-only FS (no outside-cwd approval). Overrides --yolo / auto-yolo.
+    #[arg(long, global = true)]
+    sandbox: bool,
+
     /// Working directory
     #[arg(long, global = true)]
     cwd: Option<PathBuf>,
@@ -539,6 +543,9 @@ async fn main() -> Result<()> {
     if cli.yolo {
         config.yolo = true;
     }
+    if cli.sandbox {
+        config.sandbox = true;
+    }
 
     let cwd = cli
         .cwd
@@ -590,6 +597,7 @@ async fn main() -> Result<()> {
         agent = agent.with_learning(true);
     }
     // YOLO for explicit flag, one-shot -p, or non-interactive mission/plan commands.
+    // Sandbox always wins over yolo / auto-yolo.
     let auto_yolo = config.yolo
         || cli.prompt.is_some()
         || matches!(
@@ -598,7 +606,9 @@ async fn main() -> Result<()> {
                 | Some(Commands::Plan { .. })
                 | Some(Commands::Missions { .. })
         );
-    agent.permission = if auto_yolo {
+    agent.permission = if config.sandbox {
+        PermissionMode::Deny
+    } else if auto_yolo {
         PermissionMode::Yolo
     } else {
         PermissionMode::Prompt
@@ -851,6 +861,7 @@ async fn repl(mut agent: AgentLoop, store: Arc<Store>) -> Result<()> {
             agent.config.reasoning_effort.as_str(),
             &agent.cwd.display().to_string(),
             agent.config.yolo,
+            agent.config.sandbox,
         )
     );
 
@@ -906,9 +917,13 @@ async fn repl(mut agent: AgentLoop, store: Arc<Store>) -> Result<()> {
             continue;
         }
         if line == "/yolo" {
-            agent.permission = PermissionMode::Yolo;
-            agent.config.yolo = true;
-            println!("{}", ui::event("mode", "yolo"));
+            if agent.config.sandbox || matches!(agent.permission, PermissionMode::Deny) {
+                println!("{}", ui::event("mode", "sandbox (yolo blocked)"));
+            } else {
+                agent.permission = PermissionMode::Yolo;
+                agent.config.yolo = true;
+                println!("{}", ui::event("mode", "yolo"));
+            }
             continue;
         }
         if line == "/cost" {

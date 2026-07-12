@@ -38,6 +38,10 @@ pub struct AegisConfig {
     pub max_agent_steps: usize,
     pub store_server_side: bool,
     pub yolo: bool,
+    /// Multi-tenant-style sandbox: deny shell; workspace-only FS (no approve escape).
+    /// Overrides yolo / auto-yolo when set.
+    #[serde(default)]
+    pub sandbox: bool,
     /// Rough token budget before auto-compaction kicks in.
     pub compact_token_threshold: usize,
     pub enable_web_fetch: bool,
@@ -87,6 +91,7 @@ impl Default for AegisConfig {
             max_agent_steps: 40,
             store_server_side: true,
             yolo: false,
+            sandbox: false,
             compact_token_threshold: 120_000,
             enable_web_fetch: true,
             reasoning_effort: default_reasoning(),
@@ -162,6 +167,7 @@ struct PartialConfig {
     max_agent_steps: Option<usize>,
     store_server_side: Option<bool>,
     yolo: Option<bool>,
+    sandbox: Option<bool>,
     compact_token_threshold: Option<usize>,
     enable_web_fetch: Option<bool>,
     reasoning_effort: Option<String>,
@@ -198,6 +204,9 @@ impl PartialConfig {
         }
         if let Some(v) = self.yolo {
             cfg.yolo = v;
+        }
+        if let Some(v) = self.sandbox {
+            cfg.sandbox = v;
         }
         if let Some(v) = self.compact_token_threshold {
             cfg.compact_token_threshold = v;

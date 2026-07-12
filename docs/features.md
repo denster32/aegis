@@ -1,6 +1,6 @@
 # Feature matrix
 
-Verified against CLI + crates as of **0.5.2**.
+Verified against CLI + crates as of **0.6.0**.
 
 ## Agent
 
@@ -44,18 +44,30 @@ Monochrome SpaceX / xAI terminal chrome — `aegis_core::ui`:
 - Geometric marks: `●` ok · `×` fail · `·` idle · `▸` active
 - REPL prompt `›`
 
+## Safety
+
+| Feature | Status | Entry |
+|---------|--------|--------|
+| Prompt / YOLO tool gates | ✅ | default REPL · `--yolo` |
+| **Sandbox (Deny)** | ✅ | `--sandbox` (global) · `sandbox = true` in config |
+| Workspace-only FS in sandbox | ✅ | no outside-cwd approve escape |
+| Bash fully denied in sandbox | ✅ | `PermissionMode::Deny` |
+| Sandbox overrides auto-yolo | ✅ | wins over `-p` / `--yolo` / missions |
+| `web_fetch` private IP block | ✅ | localhost, RFC1918, CGNAT, IPv6 ULA/LL, mapped |
+
 ## Behavioral caveats
 
 | Caveat | Detail |
 |--------|--------|
-| Auto-YOLO | `-p`, `plan`, `mission`, `missions *` auto-approve tools (use only in trusted sandboxes) |
+| Auto-YOLO | `-p`, `plan`, `mission`, `missions *` auto-approve tools unless `--sandbox` |
+| Sandbox scope | Tool-layer only (not seccomp/containers); pair with OS isolation for hostile tenants |
 | Stream | `--stream` applies to first agent step only |
 | Wiki refresh | Currently same as `generate` |
-| Unit tests | Thin (~12); live stress is primary confidence bar |
-| GitHub Actions | Private repo runners may fail to schedule; local clippy/test is the gate |
+| Unit tests | ~95 offline unit tests; live stress optional for API path |
+| GitHub Actions | Core CI needs no secrets; use workflow_dispatch if runners idle |
 
 ## Not productized (future)
 
 - Multi-agent model routing (`grok-4.20-multi-agent`)
 - Image/video generation products
-- Hard multi-tenant sandboxing
+- OS-level isolation (seccomp / containers) beyond tool-layer `--sandbox`

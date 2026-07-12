@@ -51,10 +51,8 @@ impl Tool for EditFileTool {
             return ToolResult::err("old_string and new_string are identical");
         }
 
-        if !ctx.is_within_cwd(&path)
-            && !ctx.approve(&format!("edit outside cwd: {}", path.display()))
-        {
-            return ToolResult::err("permission denied");
+        if !ctx.allow_path(&path, "edit") {
+            return ToolResult::err("permission denied: edit outside workspace");
         }
 
         let lock = ctx.lock_path(&path).await;
@@ -90,5 +88,109 @@ impl Tool for EditFileTool {
             )),
             Err(e) => ToolResult::err(format!("write: {e}")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::registry::{PermissionMode, ToolContext};
+
+    fn yolo_ctx(dir: &std::path::Path) -> ToolContext {
+        ToolContext::new(dir.to_path_buf(), "test".into(), PermissionMode::Yolo)
+    }
+
+    #[tokio::test]
+    async fn edit_single_replacement() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("f.txt"), "hello world").unwrap();
+        let ctx = yolo_ctx(dir.path());
+        let r = EditFileTool
+            .call(
+                json!({
+                    "path": "f.txt",
+                    "old_string": "world",
+                    "new_string": "aegis"
+                }),
+                &ctx,
+            )
+            .await;
+        assert!(r.ok, "{}", r.output);
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("f.txt")).unwrap(),
+            "hello aegis"
+        );
+    }
+
+    #[tokio::test]
+    async fn edit_replace_all() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("f.txt"), "aa ba aa").unwrap();
+        let ctx = yolo_ctx(dir.path());
+        let r = EditFileTool
+            .call(
+                json!({
+                    "path": "f.txt",
+                    "old_string": "aa",
+                    "new_string": "xx",
+                    "replace_all": true
+                }),
+                &ctx,
+            )
+            .await;
+        assert!(r.ok, "{}", r.output);
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("f.txt")).unwrap(),
+            "xx ba xx"
+        );
+    }
+
+    #[tokio::test]
+    async fn edit_requires_unique_without_replace_all() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("f.txt"), "aa ba aa").unwrap();
+        let ctx = yolo_ctx(dir.path());
+        let r = EditFileTool
+            .call(
+                json!({
+                    "path": "f.txt",
+                    "old_string": "aa",
+                    "new_string": "xx"
+                }),
+                &ctx,
+            )
+            .await;
+        assert!(!r.ok);
+        assert!(r.output.contains("2 times") || r.output.contains("replace_all"));
+    }
+
+    #[tokio::test]
+    async fn edit_not_found_and_identical() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("f.txt"), "only").unwrap();
+        let ctx = yolo_ctx(dir.path());
+        let missing = EditFileTool
+            .call(
+                json!({
+                    "path": "f.txt",
+                    "old_string": "nope",
+                    "new_string": "x"
+                }),
+                &ctx,
+            )
+            .await;
+        assert!(!missing.ok);
+        let same = EditFileTool
+            .call(
+                json!({
+                    "path": "f.txt",
+                    "old_string": "only",
+                    "new_string": "only"
+                }),
+                &ctx,
+            )
+            .await;
+        assert!(!same.ok);
+        assert!(same.output.contains("identical"));
     }
 }

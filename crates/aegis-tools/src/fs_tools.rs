@@ -33,9 +33,7 @@ impl Tool for ReadFileTool {
             Some(p) => ctx.resolve_path(p),
             None => return ToolResult::err("missing path"),
         };
-        if !ctx.is_within_cwd(&path)
-            && !ctx.approve(&format!("read outside cwd: {}", path.display()))
-        {
+        if !ctx.allow_path(&path, "read") {
             return ToolResult::err("permission denied: read outside workspace");
         }
         let offset = args.get("offset").and_then(|v| v.as_u64()).unwrap_or(1) as usize;
@@ -104,9 +102,7 @@ impl Tool for WriteFileTool {
             None => return ToolResult::err("missing content"),
         };
 
-        if !ctx.is_within_cwd(&path)
-            && !ctx.approve(&format!("write outside cwd: {}", path.display()))
-        {
+        if !ctx.allow_path(&path, "write") {
             return ToolResult::err("permission denied: write outside workspace");
         }
 
@@ -134,11 +130,20 @@ mod tests {
     use super::*;
     use crate::registry::{PermissionMode, ToolContext};
 
-    #[tokio::test]
-    async fn write_and_read_roundtrip() {
-        let dir = std::env::temp_dir().join(format!("aegis-tool-test-{}", std::process::id()));
+    fn temp_dir() -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "aegis-tool-test-{}-{}",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        ));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
+        dir.canonicalize().unwrap()
+    }
+
+    #[tokio::test]
+    async fn write_and_read_roundtrip() {
+        let dir = temp_dir();
         let ctx = ToolContext::new(dir.clone(), "test".into(), PermissionMode::Yolo);
         let w = WriteFileTool;
         let r = w
@@ -149,6 +154,98 @@ mod tests {
         let out = reader.call(json!({"path": "a.txt"}), &ctx).await;
         assert!(out.ok);
         assert!(out.output.contains("hello"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn sandbox_deny_allows_inside_blocks_outside_fs() {
+        let dir = temp_dir();
+        let ctx = ToolContext::new(dir.clone(), "test".into(), PermissionMode::Deny);
+        let w = WriteFileTool;
+        let reader = ReadFileTool;
+
+        let inside = w
+            .call(json!({"path": "safe.txt", "content": "inside"}), &ctx)
+            .await;
+        assert!(inside.ok, "{}", inside.output);
+        let read_in = reader.call(json!({"path": "safe.txt"}), &ctx).await;
+        assert!(read_in.ok, "{}", read_in.output);
+        assert!(read_in.output.contains("inside"));
+
+        let outside = std::env::temp_dir().join(format!(
+            "aegis-sandbox-out-{}-{}",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::write(&outside, "secret").unwrap();
+        let outside_s = outside.to_string_lossy().to_string();
+
+        let read_out = reader.call(json!({"path": outside_s.clone()}), &ctx).await;
+        assert!(!read_out.ok, "sandbox must deny outside read");
+        assert!(read_out.output.contains("permission denied"));
+
+        let write_out = w
+            .call(json!({"path": outside_s, "content": "overwrite"}), &ctx)
+            .await;
+        assert!(!write_out.ok, "sandbox must deny outside write");
+        assert!(write_out.output.contains("permission denied"));
+        // Original outside content must be untouched.
+        assert_eq!(std::fs::read_to_string(&outside).unwrap(), "secret");
+
+        let _ = std::fs::remove_file(&outside);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn read_offset_and_limit() {
+        let dir = temp_dir();
+        let ctx = ToolContext::new(dir.clone(), "test".into(), PermissionMode::Yolo);
+        WriteFileTool
+            .call(
+                json!({"path": "lines.txt", "content": "a\nb\nc\nd\ne\n"}),
+                &ctx,
+            )
+            .await;
+        let out = ReadFileTool
+            .call(json!({"path": "lines.txt", "offset": 2, "limit": 2}), &ctx)
+            .await;
+        assert!(out.ok, "{}", out.output);
+        assert!(out.output.contains("b"));
+        assert!(out.output.contains("c"));
+        assert!(!out.output.contains("|a\n") && !out.output.contains("|a|"));
+        // line numbers 2 and 3 only
+        assert!(out.output.contains("     2|"));
+        assert!(out.output.contains("     3|"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn read_missing_file_errors() {
+        let dir = temp_dir();
+        let ctx = ToolContext::new(dir.clone(), "test".into(), PermissionMode::Yolo);
+        let out = ReadFileTool
+            .call(json!({"path": "missing.txt"}), &ctx)
+            .await;
+        assert!(!out.ok);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn write_nested_path_creates_parents() {
+        let dir = temp_dir();
+        let ctx = ToolContext::new(dir.clone(), "test".into(), PermissionMode::Yolo);
+        let r = WriteFileTool
+            .call(
+                json!({"path": "sub/dir/file.txt", "content": "nested"}),
+                &ctx,
+            )
+            .await;
+        assert!(r.ok, "{}", r.output);
+        let out = ReadFileTool
+            .call(json!({"path": "sub/dir/file.txt"}), &ctx)
+            .await;
+        assert!(out.ok);
+        assert!(out.output.contains("nested"));
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

@@ -150,8 +150,15 @@ pub fn repl_banner(
     effort: &str,
     cwd: &str,
     yolo: bool,
+    sandbox: bool,
 ) -> String {
-    let mode = if yolo { "yolo" } else { "prompt" };
+    let mode = if sandbox {
+        "sandbox"
+    } else if yolo {
+        "yolo"
+    } else {
+        "prompt"
+    };
     format!(
         "\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n  {}\n\n",
         wordmark(version),

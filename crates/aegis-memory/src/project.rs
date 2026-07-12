@@ -289,24 +289,103 @@ mod tests {
     use super::*;
     use crate::lessons::Lesson;
 
-    #[test]
-    fn open_and_lesson() {
-        let dir = std::env::temp_dir().join(format!("aegis-mem-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        let mem = ProjectMemory::open(&dir).unwrap();
-        let lesson = Lesson {
-            id: "1".into(),
+    fn sample_lesson(id: &str, summary: &str) -> Lesson {
+        Lesson {
+            id: id.into(),
             ts: Utc::now().to_rfc3339(),
             kind: "convention".into(),
-            summary: "use cargo test".into(),
-            detail: "run from root".into(),
+            summary: summary.into(),
+            detail: "detail".into(),
             tags: vec!["test".into()],
             confidence: 0.8,
             hits: 1,
-        };
-        mem.append_lesson(&lesson).unwrap();
+        }
+    }
+
+    #[test]
+    fn open_and_lesson() {
+        let dir = tempfile::tempdir().unwrap();
+        let mem = ProjectMemory::open(dir.path()).unwrap();
+        mem.append_lesson(&sample_lesson("1", "use cargo test"))
+            .unwrap();
         assert_eq!(mem.load_lessons().unwrap().len(), 1);
-        let _ = fs::remove_dir_all(&dir);
+        assert!(mem.paths.memory_md.exists());
+        assert!(mem.paths.aegis_dir.exists());
+    }
+
+    #[test]
+    fn append_multiple_lessons() {
+        let dir = tempfile::tempdir().unwrap();
+        let mem = ProjectMemory::open(dir.path()).unwrap();
+        mem.append_lesson(&sample_lesson("1", "first")).unwrap();
+        mem.append_lesson(&sample_lesson("2", "second")).unwrap();
+        let lessons = mem.load_lessons().unwrap();
+        assert_eq!(lessons.len(), 2);
+        assert_eq!(lessons[0].summary, "first");
+        assert_eq!(lessons[1].summary, "second");
+    }
+
+    #[test]
+    fn write_memory_redacts_secrets() {
+        let dir = tempfile::tempdir().unwrap();
+        let mem = ProjectMemory::open(dir.path()).unwrap();
+        mem.write_memory_md("api_key=supersecretvalue999\nsafe line\n")
+            .unwrap();
+        let md = mem.read_memory_md().unwrap();
+        assert!(md.contains("[REDACTED]") || !md.contains("supersecretvalue999"));
+        assert!(md.contains("safe line"));
+    }
+
+    #[test]
+    fn merge_memory_sections() {
+        let dir = tempfile::tempdir().unwrap();
+        let mem = ProjectMemory::open(dir.path()).unwrap();
+        mem.merge_memory_sections(
+            Some("Rust + tokio"),
+            Some("cargo test"),
+            Some("watch the WAL"),
+            None,
+        )
+        .unwrap();
+        let md = mem.read_memory_md().unwrap();
+        assert!(md.contains("Rust + tokio"));
+        assert!(md.contains("cargo test"));
+        assert!(md.contains("watch the WAL"));
+        // second merge updates Stack
+        mem.merge_memory_sections(Some("Rust only"), None, None, None)
+            .unwrap();
+        let md = mem.read_memory_md().unwrap();
+        assert!(md.contains("Rust only"));
+    }
+
+    #[test]
+    fn metrics_and_skills() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut mem = ProjectMemory::open(dir.path()).unwrap();
+        mem.record_run_start("run-1").unwrap();
+        assert_eq!(mem.metrics.run_count, 1);
+        assert_eq!(mem.metrics.last_run_id.as_deref(), Some("run-1"));
+        let path = mem.write_skill("my skill!", "do the thing").unwrap();
+        assert!(path.exists());
+        assert!(path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .contains("my_skill"));
+        let skills = mem.list_skills().unwrap();
+        assert_eq!(skills.len(), 1);
+        let report = mem.summary_report().unwrap();
+        assert!(report.contains("MEMORY"));
+        assert!(report.contains("lessons"));
+    }
+
+    #[test]
+    fn clear_lessons_failures() {
+        let dir = tempfile::tempdir().unwrap();
+        let mem = ProjectMemory::open(dir.path()).unwrap();
+        mem.append_lesson(&sample_lesson("1", "x")).unwrap();
+        assert_eq!(mem.load_lessons().unwrap().len(), 1);
+        mem.clear_lessons_failures().unwrap();
+        assert!(mem.load_lessons().unwrap().is_empty());
     }
 }

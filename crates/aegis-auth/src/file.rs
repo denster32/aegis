@@ -190,3 +190,139 @@ pub fn import_grok_to_aegis() -> Result<AuthEntry> {
     upsert_entry(&paths.aegis, entry.clone())?;
     Ok(entry)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Duration, Utc};
+
+    fn sample_entry(key: &str) -> AuthEntry {
+        AuthEntry {
+            key: key.into(),
+            auth_mode: Some("oauth".into()),
+            create_time: None,
+            user_id: Some("u1".into()),
+            email: Some("user@x.ai".into()),
+            first_name: None,
+            last_name: None,
+            principal_type: None,
+            principal_id: None,
+            team_id: Some("team".into()),
+            refresh_token: Some("refresh".into()),
+            expires_at: None,
+            oidc_issuer: None,
+            oidc_client_id: None,
+            coding_data_retention_opt_out: None,
+        }
+    }
+
+    #[test]
+    fn auth_source_as_str() {
+        assert_eq!(AuthSource::EnvToken.as_str(), "env-token");
+        assert_eq!(AuthSource::AegisFile.as_str(), "aegis-auth.json");
+        assert_eq!(AuthSource::GrokFile.as_str(), "grok-auth.json");
+        assert_eq!(AuthSource::ApiKey.as_str(), "api-key");
+    }
+
+    #[test]
+    fn entry_defaults_and_map_key() {
+        let e = sample_entry("tok");
+        assert_eq!(e.client_id(), GROK_OIDC_CLIENT_ID);
+        assert_eq!(e.issuer(), crate::DEFAULT_ISSUER);
+        assert_eq!(
+            e.map_key(),
+            format!("{}::{}", crate::DEFAULT_ISSUER, GROK_OIDC_CLIENT_ID)
+        );
+    }
+
+    #[test]
+    fn needs_refresh_respects_expiry() {
+        let mut e = sample_entry("tok");
+        assert!(!e.needs_refresh(120));
+
+        e.expires_at = Some((Utc::now() - Duration::seconds(10)).to_rfc3339());
+        assert!(e.needs_refresh(120));
+
+        e.expires_at = Some((Utc::now() + Duration::hours(2)).to_rfc3339());
+        assert!(!e.needs_refresh(120));
+
+        // Within skew window
+        e.expires_at = Some((Utc::now() + Duration::seconds(30)).to_rfc3339());
+        assert!(e.needs_refresh(120));
+    }
+
+    #[test]
+    fn first_entry_skips_empty_keys() {
+        let mut file = AuthFile::new();
+        file.insert("empty".into(), sample_entry(""));
+        assert!(first_entry(&file).is_none());
+        file.insert("good".into(), sample_entry("real-token"));
+        let (k, e) = first_entry(&file).unwrap();
+        assert!(!e.key.is_empty());
+        assert!(k == "empty" || k == "good");
+        // ensure we got the non-empty one
+        assert_eq!(e.key, "real-token");
+    }
+
+    #[test]
+    fn access_token_alias_deserializes() {
+        let json = r#"{
+            "https://auth.x.ai::cid": {
+                "access_token": "jwt-here",
+                "email": "a@b.c"
+            }
+        }"#;
+        let file: AuthFile = serde_json::from_str(json).unwrap();
+        let (_, e) = first_entry(&file).unwrap();
+        assert_eq!(e.key, "jwt-here");
+        assert_eq!(e.email.as_deref(), Some("a@b.c"));
+    }
+
+    #[test]
+    fn write_read_clear_auth_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("auth.json");
+        assert!(read_auth_file(&path).unwrap().is_none());
+
+        let mut file = AuthFile::new();
+        let entry = sample_entry("access-xyz");
+        file.insert(entry.map_key(), entry.clone());
+        write_auth_file(&path, &file).unwrap();
+        assert!(path.exists());
+
+        let loaded = read_auth_file(&path).unwrap().unwrap();
+        let (_, got) = first_entry(&loaded).unwrap();
+        assert_eq!(got.key, "access-xyz");
+        assert_eq!(got.email.as_deref(), Some("user@x.ai"));
+
+        clear_auth_file(&path).unwrap();
+        assert!(!path.exists());
+        assert!(read_auth_file(&path).unwrap().is_none());
+        // clearing missing is ok
+        clear_auth_file(&path).unwrap();
+    }
+
+    #[test]
+    fn upsert_entry_merges() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("auth.json");
+        let e1 = sample_entry("v1");
+        upsert_entry(&path, e1).unwrap();
+        let mut e2 = sample_entry("v2");
+        e2.email = Some("other@x.ai".into());
+        upsert_entry(&path, e2).unwrap();
+        let loaded = read_auth_file(&path).unwrap().unwrap();
+        assert_eq!(loaded.len(), 1);
+        let (_, got) = first_entry(&loaded).unwrap();
+        assert_eq!(got.key, "v2");
+        assert_eq!(got.email.as_deref(), Some("other@x.ai"));
+    }
+
+    #[test]
+    fn empty_file_reads_as_none() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("empty.json");
+        std::fs::write(&path, "   \n").unwrap();
+        assert!(read_auth_file(&path).unwrap().is_none());
+    }
+}

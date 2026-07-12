@@ -14,7 +14,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.5.2"
+version = "0.6.0"
 edition = "2021"
 license = "MIT"
 authors = ["Dennis"]
@@ -59,3 +59,4 @@ indicatif = "0.17"
 console = "0.15"
 eventsource-stream = "0.2"
 bytes = "1"
+tempfile = "3"

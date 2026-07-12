@@ -258,3 +258,146 @@ impl TokenSource for StaticToken {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Mutex, OnceLock};
+
+    /// Serialize env-var mutation across tests in this crate.
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    struct EnvGuard {
+        keys: Vec<&'static str>,
+        saved: Vec<Option<String>>,
+    }
+
+    impl EnvGuard {
+        fn capture(keys: &[&'static str]) -> Self {
+            let saved = keys.iter().map(|k| std::env::var(k).ok()).collect();
+            for k in keys {
+                std::env::remove_var(k);
+            }
+            Self {
+                keys: keys.to_vec(),
+                saved,
+            }
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            for (k, v) in self.keys.iter().zip(self.saved.iter()) {
+                match v {
+                    Some(val) => std::env::set_var(k, val),
+                    None => std::env::remove_var(k),
+                }
+            }
+        }
+    }
+
+    const AUTH_ENV_KEYS: &[&str] = &[
+        "AEGIS_ACCESS_TOKEN",
+        "XAI_ACCESS_TOKEN",
+        "XAI_API_KEY",
+        "SPACEXAI_API_KEY",
+    ];
+
+    #[test]
+    fn resolve_prefers_aegis_access_token() {
+        let _g = env_lock().lock().unwrap();
+        let _env = EnvGuard::capture(AUTH_ENV_KEYS);
+        std::env::set_var("AEGIS_ACCESS_TOKEN", "env-access-token");
+        std::env::set_var("XAI_API_KEY", "should-not-win");
+        let p = AuthProvider::resolve().unwrap();
+        let st = p.status_snapshot();
+        assert_eq!(st.source, AuthSource::EnvToken);
+        assert!(!st.needs_refresh);
+        // token() is async; use runtime-free field via status + force path
+        let tok = futures_executor_token(&p);
+        assert_eq!(tok, "env-access-token");
+    }
+
+    #[test]
+    fn resolve_xai_access_token_alias() {
+        let _g = env_lock().lock().unwrap();
+        let _env = EnvGuard::capture(AUTH_ENV_KEYS);
+        std::env::set_var("XAI_ACCESS_TOKEN", "xai-access");
+        let p = AuthProvider::resolve().unwrap();
+        assert_eq!(p.status_snapshot().source, AuthSource::EnvToken);
+        assert_eq!(futures_executor_token(&p), "xai-access");
+    }
+
+    #[test]
+    fn resolve_api_key_when_no_access_token() {
+        let _g = env_lock().lock().unwrap();
+        let _env = EnvGuard::capture(AUTH_ENV_KEYS);
+        // Auth files on the host may still resolve — only assert API key
+        // wins over nothing when those are absent, or when we force API key
+        // with empty access tokens. If files exist, source may be Aegis/Grok.
+        // Prefer testing StaticToken + explicit ApiKey construction path via env
+        // only when resolve hits step 4: clear tokens, set key, and accept
+        // file-or-key outcomes that are never EnvToken.
+        std::env::set_var("XAI_API_KEY", "sk-test-api-key");
+        let p = AuthProvider::resolve();
+        // Must succeed somehow (file or api key)
+        let p = p.expect("resolve should find file or api key");
+        let src = p.status_snapshot().source;
+        assert!(
+            matches!(
+                src,
+                AuthSource::ApiKey | AuthSource::AegisFile | AuthSource::GrokFile
+            ),
+            "unexpected source {src:?}"
+        );
+        if src == AuthSource::ApiKey {
+            assert_eq!(futures_executor_token(&p), "sk-test-api-key");
+            assert!(p.status_snapshot().source == AuthSource::ApiKey);
+        }
+    }
+
+    #[test]
+    fn resolve_spacexai_api_key_alias() {
+        let _g = env_lock().lock().unwrap();
+        let _env = EnvGuard::capture(AUTH_ENV_KEYS);
+        std::env::set_var("SPACEXAI_API_KEY", "spacex-key");
+        let p = AuthProvider::resolve().expect("file or spacex key");
+        if p.status_snapshot().source == AuthSource::ApiKey {
+            assert_eq!(futures_executor_token(&p), "spacex-key");
+        }
+    }
+
+    #[test]
+    fn empty_access_token_falls_through() {
+        let _g = env_lock().lock().unwrap();
+        let _env = EnvGuard::capture(AUTH_ENV_KEYS);
+        std::env::set_var("AEGIS_ACCESS_TOKEN", "");
+        std::env::set_var("XAI_API_KEY", "from-api");
+        let p = AuthProvider::resolve().expect("should resolve");
+        // Empty access token must not be treated as EnvToken
+        assert_ne!(p.status_snapshot().source, AuthSource::EnvToken);
+    }
+
+    #[test]
+    fn static_token_source() {
+        let s = StaticToken("static".into());
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        assert_eq!(rt.block_on(s.token()).unwrap(), "static");
+        rt.block_on(s.force_refresh()).unwrap();
+        assert_eq!(s.status().source, AuthSource::EnvToken);
+    }
+
+    fn futures_executor_token(p: &AuthProvider) -> String {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        rt.block_on(p.token()).unwrap()
+    }
+}

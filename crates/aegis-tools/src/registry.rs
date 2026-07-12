@@ -11,7 +11,7 @@ pub enum PermissionMode {
     Prompt,
     /// Auto-approve everything.
     Yolo,
-    /// Deny dangerous ops (shell / outside writes).
+    /// Sandbox: deny shell entirely; force workspace-only FS with no approve escape hatch.
     Deny,
 }
 
@@ -92,6 +92,18 @@ impl ToolContext {
             return path.starts_with(&self.cwd);
         };
         p.starts_with(&cwd)
+    }
+
+    /// Allow path access if inside cwd; outside cwd needs approval except in sandbox
+    /// (`PermissionMode::Deny`), which never grants an escape hatch.
+    pub fn allow_path(&self, path: &Path, action: &str) -> bool {
+        if self.is_within_cwd(path) {
+            return true;
+        }
+        if matches!(self.permission, PermissionMode::Deny) {
+            return false;
+        }
+        self.approve(&format!("{action} outside cwd: {}", path.display()))
     }
 
     pub async fn lock_path(&self, path: &Path) -> Arc<tokio::sync::Mutex<()>> {
@@ -201,4 +213,127 @@ pub fn default_registry() -> ToolRegistry {
     reg.register(Arc::new(VisionDescribeTool));
     reg.register(Arc::new(ScreenshotTool));
     reg
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn temp_ctx(mode: PermissionMode) -> (PathBuf, ToolContext) {
+        let dir = std::env::temp_dir().join(format!(
+            "aegis-cwd-test-{}-{}",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        ));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let dir = dir.canonicalize().unwrap();
+        let ctx = ToolContext::new(dir.clone(), "test".into(), mode);
+        (dir, ctx)
+    }
+
+    #[test]
+    fn is_within_cwd_accepts_relative_and_absolute_inside() {
+        let (dir, ctx) = temp_ctx(PermissionMode::Prompt);
+        let inside = dir.join("nested/file.txt");
+        fs::create_dir_all(inside.parent().unwrap()).unwrap();
+        fs::write(&inside, "x").unwrap();
+        assert!(ctx.is_within_cwd(&inside));
+        assert!(ctx.is_within_cwd(&dir.join("nested/file.txt")));
+        // Non-existent path whose parent is inside cwd.
+        assert!(ctx.is_within_cwd(&dir.join("new-file.txt")));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn is_within_cwd_rejects_outside() {
+        let (dir, ctx) = temp_ctx(PermissionMode::Prompt);
+        let outside = std::env::temp_dir().join(format!(
+            "aegis-outside-{}-{}",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        ));
+        fs::write(&outside, "x").unwrap();
+        let outside = outside.canonicalize().unwrap();
+        assert!(!ctx.is_within_cwd(&outside));
+        // Parent of cwd is outside the workspace.
+        if let Some(parent) = dir.parent() {
+            assert!(!ctx.is_within_cwd(parent));
+        }
+        let _ = fs::remove_file(&outside);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn allow_path_sandbox_deny_blocks_outside_no_escape() {
+        let (dir, ctx) = temp_ctx(PermissionMode::Deny);
+        let outside = std::env::temp_dir().join(format!(
+            "aegis-deny-out-{}-{}",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        ));
+        fs::write(&outside, "secret").unwrap();
+        let outside = outside.canonicalize().unwrap();
+        assert!(ctx.allow_path(&dir.join("ok.txt"), "read"));
+        assert!(!ctx.allow_path(&outside, "read"));
+        assert!(!ctx.approve("anything"));
+        let _ = fs::remove_file(&outside);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn allow_path_yolo_permits_outside() {
+        let (dir, ctx) = temp_ctx(PermissionMode::Yolo);
+        let outside = std::env::temp_dir().join(format!(
+            "aegis-yolo-out-{}-{}",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        ));
+        fs::write(&outside, "x").unwrap();
+        let outside = outside.canonicalize().unwrap();
+        assert!(ctx.allow_path(&outside, "read"));
+        let _ = fs::remove_file(&outside);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn approve_deny_always_false() {
+        let (dir, ctx) = temp_ctx(PermissionMode::Deny);
+        assert!(!ctx.approve("run bash: ls"));
+        assert!(!ctx.approve("write outside cwd: /etc/passwd"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn resolve_path_relative_and_absolute() {
+        let (dir, ctx) = temp_ctx(PermissionMode::Yolo);
+        let rel = ctx.resolve_path("foo/bar.txt");
+        assert_eq!(rel, dir.join("foo/bar.txt"));
+        let abs = ctx.resolve_path("/etc/hosts");
+        assert_eq!(abs, PathBuf::from("/etc/hosts"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn approve_modes() {
+        let (dir, yolo) = temp_ctx(PermissionMode::Yolo);
+        assert!(yolo.approve("anything"));
+        let deny = ToolContext::new(dir.clone(), "s".into(), PermissionMode::Deny);
+        assert!(!deny.approve("anything"));
+        let prompt = ToolContext::new(dir.clone(), "s".into(), PermissionMode::Prompt);
+        assert!(!prompt.approve("no ask fn"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn default_registry_has_core_tools() {
+        let reg = default_registry();
+        for name in ["read_file", "write_file", "edit_file", "grep", "bash"] {
+            assert!(reg.get(name).is_some(), "missing tool {name}");
+        }
+        let tools = reg.to_xai_tools();
+        assert!(!tools.is_empty());
+        assert!(tools.iter().any(|(n, _, _)| n == "read_file"));
+    }
 }

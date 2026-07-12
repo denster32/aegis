@@ -429,24 +429,33 @@ pub enum XaiError {
 mod grok45_tests {
     use super::*;
 
-    #[test]
-    fn request_serializes_reasoning_and_cache_key() {
-        let req = CreateResponseRequest {
+    fn minimal_req() -> CreateResponseRequest {
+        CreateResponseRequest {
             model: "grok-4.5".into(),
             input: vec![user_msg("hi")],
-            tools: Some(vec![ServerTool::web_search(), ServerTool::code_execution()]),
+            tools: None,
             tool_choice: None,
             previous_response_id: None,
-            store: Some(true),
+            store: None,
             stream: None,
             temperature: None,
             max_output_tokens: None,
-            parallel_tool_calls: Some(true),
+            parallel_tool_calls: None,
             text: None,
             include: None,
-            reasoning: Some(ReasoningConfig::low()),
-            prompt_cache_key: Some("sess-123".into()),
-        };
+            reasoning: None,
+            prompt_cache_key: None,
+        }
+    }
+
+    #[test]
+    fn request_serializes_reasoning_and_cache_key() {
+        let mut req = minimal_req();
+        req.tools = Some(vec![ServerTool::web_search(), ServerTool::code_execution()]);
+        req.store = Some(true);
+        req.parallel_tool_calls = Some(true);
+        req.reasoning = Some(ReasoningConfig::low());
+        req.prompt_cache_key = Some("sess-123".into());
         let v = serde_json::to_value(&req).unwrap();
         assert_eq!(v["reasoning"]["effort"], "low");
         assert_eq!(v["prompt_cache_key"], "sess-123");
@@ -460,5 +469,183 @@ mod grok45_tests {
             .unwrap()
             .iter()
             .any(|t| t["type"] == "code_execution"));
+    }
+
+    #[test]
+    fn reasoning_omitted_when_none() {
+        let req = minimal_req();
+        let v = serde_json::to_value(&req).unwrap();
+        assert!(v.get("reasoning").is_none());
+        assert!(v.get("prompt_cache_key").is_none());
+    }
+
+    #[test]
+    fn tools_and_tool_choice_omitted_when_none() {
+        let req = minimal_req();
+        let v = serde_json::to_value(&req).unwrap();
+        assert!(v.get("tools").is_none());
+        assert!(v.get("tool_choice").is_none());
+        assert!(v.get("previous_response_id").is_none());
+        assert!(v.get("store").is_none());
+        assert!(v.get("stream").is_none());
+        assert!(v.get("temperature").is_none());
+        assert!(v.get("max_output_tokens").is_none());
+        assert!(v.get("parallel_tool_calls").is_none());
+        assert!(v.get("text").is_none());
+        assert!(v.get("include").is_none());
+    }
+
+    #[test]
+    fn tool_choice_serializes() {
+        let mut req = minimal_req();
+        req.tool_choice = Some(ToolChoice::auto());
+        let v = serde_json::to_value(&req).unwrap();
+        assert_eq!(v["tool_choice"], "auto");
+
+        req.tool_choice = Some(ToolChoice::Forced {
+            kind: "function".into(),
+            name: "read_file".into(),
+        });
+        let v = serde_json::to_value(&req).unwrap();
+        assert_eq!(v["tool_choice"]["type"], "function");
+        assert_eq!(v["tool_choice"]["name"], "read_file");
+    }
+
+    #[test]
+    fn reasoning_config_parse_effort() {
+        assert_eq!(ReasoningConfig::parse_effort("low").effort, "low");
+        assert_eq!(ReasoningConfig::parse_effort("MEDIUM").effort, "medium");
+        assert_eq!(ReasoningConfig::parse_effort("high").effort, "high");
+        assert_eq!(ReasoningConfig::parse_effort("weird").effort, "high");
+    }
+
+    #[test]
+    fn function_call_output_new() {
+        let f = FunctionCallOutput::new("call_1", "result");
+        assert_eq!(f.kind, "function_call_output");
+        assert_eq!(f.call_id, "call_1");
+        let item = InputItem::FunctionCallOutput(f);
+        let v = serde_json::to_value(&item).unwrap();
+        assert_eq!(v["type"], "function_call_output");
+        assert_eq!(v["output"], "result");
+    }
+
+    #[test]
+    fn tool_def_function_spec() {
+        let def = ToolDef::function(
+            "read_file",
+            "Read a file",
+            serde_json::json!({"type": "object"}),
+        );
+        let v = serde_json::to_value(def.as_spec()).unwrap();
+        assert_eq!(v["type"], "function");
+        assert_eq!(v["name"], "read_file");
+    }
+
+    #[test]
+    fn response_output_text_and_function_calls() {
+        let resp = ResponseObject {
+            id: "r1".into(),
+            model: Some("grok-4.5".into()),
+            status: Some("completed".into()),
+            output: vec![
+                OutputItem::Message {
+                    id: None,
+                    role: Some("assistant".into()),
+                    status: None,
+                    content: vec![OutputContent::OutputText {
+                        text: "Hello ".into(),
+                        annotations: vec![],
+                    }],
+                },
+                OutputItem::Message {
+                    id: None,
+                    role: Some("assistant".into()),
+                    status: None,
+                    content: vec![OutputContent::OutputText {
+                        text: "world".into(),
+                        annotations: vec![],
+                    }],
+                },
+                OutputItem::FunctionCall {
+                    id: None,
+                    call_id: "c1".into(),
+                    name: "bash".into(),
+                    arguments: r#"{"cmd":"ls"}"#.into(),
+                    status: None,
+                },
+            ],
+            usage: None,
+            error: None,
+        };
+        assert_eq!(resp.output_text(), "Hello world");
+        let calls = resp.function_calls();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].name, "bash");
+        assert_eq!(calls[0].call_id, "c1");
+    }
+
+    #[test]
+    fn usage_cached_and_reasoning_tokens() {
+        let u = Usage {
+            input_tokens: Some(100),
+            output_tokens: Some(50),
+            total_tokens: Some(150),
+            reasoning_tokens: None,
+            input_tokens_details: Some(InputTokenDetails {
+                cached_tokens: Some(40),
+            }),
+            output_tokens_details: Some(OutputTokenDetails {
+                reasoning_tokens: Some(12),
+            }),
+            prompt_tokens_details: None,
+        };
+        assert_eq!(u.cached_tokens(), 40);
+        assert_eq!(u.reasoning_token_count(), 12);
+
+        let empty = Usage {
+            input_tokens: None,
+            output_tokens: None,
+            total_tokens: None,
+            reasoning_tokens: Some(7),
+            input_tokens_details: None,
+            output_tokens_details: None,
+            prompt_tokens_details: None,
+        };
+        assert_eq!(empty.cached_tokens(), 0);
+        assert_eq!(empty.reasoning_token_count(), 7);
+    }
+
+    #[test]
+    fn message_helpers_roles() {
+        let s = serde_json::to_value(system_msg("sys")).unwrap();
+        let u = serde_json::to_value(user_msg("usr")).unwrap();
+        let a = serde_json::to_value(assistant_msg("asst")).unwrap();
+        assert_eq!(s["role"], "system");
+        assert_eq!(u["role"], "user");
+        assert_eq!(a["role"], "assistant");
+        assert_eq!(u["content"], "usr");
+    }
+}
+
+#[cfg(test)]
+mod server_tools_tests {
+    use crate::server_tools;
+
+    #[test]
+    fn server_tools_flags() {
+        assert!(server_tools(false, false, false).is_empty());
+        let all = server_tools(true, true, true);
+        assert_eq!(all.len(), 3);
+        let v = serde_json::to_value(&all).unwrap();
+        let kinds: Vec<_> = v
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["type"].as_str().unwrap().to_string())
+            .collect();
+        assert!(kinds.contains(&"web_search".into()));
+        assert!(kinds.contains(&"x_search".into()));
+        assert!(kinds.contains(&"code_execution".into()));
     }
 }

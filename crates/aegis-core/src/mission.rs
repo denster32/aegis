@@ -88,7 +88,10 @@ pub async fn run_mission(mut boss: AgentLoop, goal: &str, opts: MissionOptions) 
     let store = boss.store.clone();
     let tools = boss.tools.clone();
     let cwd = boss.cwd.clone();
-    let permission = if boss.config.yolo {
+    // Sandbox (Deny) always wins over yolo / auto-approve.
+    let permission = if boss.config.sandbox || matches!(boss.permission, PermissionMode::Deny) {
+        PermissionMode::Deny
+    } else if boss.config.yolo {
         PermissionMode::Yolo
     } else {
         boss.permission

@@ -47,8 +47,9 @@ impl Tool for BashTool {
             .map(|p| ctx.resolve_path(p))
             .unwrap_or_else(|| ctx.cwd.clone());
 
+        // Sandbox (`PermissionMode::Deny`): bash is fully disabled — no allowlist.
         if matches!(ctx.permission, PermissionMode::Deny) {
-            return ToolResult::err("bash disabled by permission mode");
+            return ToolResult::err("bash disabled in sandbox mode");
         }
         if matches!(ctx.permission, PermissionMode::Prompt)
             && !ctx.approve(&format!("run bash: {command}"))
@@ -116,5 +117,51 @@ impl Tool for BashTool {
                 ToolResult::err(format!("timeout after {timeout_ms}ms"))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use std::path::PathBuf;
+
+    #[tokio::test]
+    async fn sandbox_deny_blocks_bash_entirely() {
+        let dir = std::env::temp_dir().join(format!(
+            "aegis-bash-deny-{}-{}",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        ));
+        let _ = std::fs::create_dir_all(&dir);
+        let ctx = ToolContext::new(dir.clone(), "test".into(), PermissionMode::Deny);
+        let tool = BashTool;
+        let r = tool
+            .call(json!({"command": "echo should-not-run"}), &ctx)
+            .await;
+        assert!(!r.ok);
+        assert!(
+            r.output.contains("sandbox") || r.output.contains("disabled"),
+            "{}",
+            r.output
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn yolo_allows_bash() {
+        let dir = std::env::temp_dir().join(format!(
+            "aegis-bash-yolo-{}-{}",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        ));
+        let _ = std::fs::create_dir_all(&dir);
+        let dir = PathBuf::from(&dir).canonicalize().unwrap_or(dir);
+        let ctx = ToolContext::new(dir.clone(), "test".into(), PermissionMode::Yolo);
+        let tool = BashTool;
+        let r = tool.call(json!({"command": "echo sandbox-ok"}), &ctx).await;
+        assert!(r.ok, "{}", r.output);
+        assert!(r.output.contains("sandbox-ok"));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

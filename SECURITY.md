@@ -22,8 +22,29 @@ Open a private security advisory or contact the maintainer. Do not file public i
 | Mode | When | Behavior |
 |------|------|----------|
 | **Prompt** | Interactive REPL (default) | Shell and outside-cwd FS need approval; fail-closed if no TTY ask |
-| **Yolo** | `--yolo`, and auto for `-p` / `plan` / `mission` / `missions *` | All tools auto-approved — **trusted sandboxes only** |
-| **Deny** | (internal / future) | Block shell and outside writes |
+| **Yolo** | `--yolo`, and auto for `-p` / `plan` / `mission` / `missions *` | All tools auto-approved — **trusted workspaces only** |
+| **Sandbox (Deny)** | `--sandbox` (global; also `sandbox = true` in config) | Shell **fully denied**; FS **workspace-only** with **no** outside-cwd approval escape; overrides YOLO / auto-yolo |
+
+### `--sandbox`
+
+Multi-tenant-style hardening for shared or untrusted agent runs:
+
+- Sets `PermissionMode::Deny` for the agent and mission workers.
+- **`bash` is always denied** (no allowlist) — use read/write/edit/grep/git tools only.
+- **`read_file` / `write_file` / `edit_file`** must stay under `--cwd` (canonicalized). Outside paths are hard-denied even if `--yolo` or `-p` auto-yolo would otherwise approve.
+- **`--sandbox` wins over `--yolo` and auto-yolo** for `-p` / plan / mission.
+- REPL `/yolo` is blocked while sandbox is active.
+- `web_fetch` blocks localhost, link-local/metadata hosts, private/CGNAT/doc IPv4, unique-local/link-local IPv6, and IPv4-mapped private addresses (literal hosts only — not a full DNS rebinding shield).
+
+Example:
+
+```bash
+aegis --sandbox --cwd /tmp/tenant-a -p "Summarize README.md"
+```
+
+Still not a full multi-tenant OS isolation layer (no seccomp/containers). Pair with OS-level isolation for hostile tenants.
+
+### Without sandbox
 
 - `read_file` / `write_file` / `edit_file` are **workspace-bound** unless approved (or YOLO).
 - `bash` can still run arbitrary commands under YOLO — treat as full process privileges.
@@ -31,4 +52,4 @@ Open a private security advisory or contact the maintainer. Do not file public i
 
 ## What Aegis is not
 
-Not a multi-tenant sandbox. Run only on machines and trees you trust, with prompts you trust.
+Without `--sandbox`, Aegis is not multi-tenant isolation. Run only on machines and trees you trust, with prompts you trust. With `--sandbox`, shell and FS escape hatches are closed at the tool layer, but network and process isolation still depend on the host.

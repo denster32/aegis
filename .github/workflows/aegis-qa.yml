@@ -1,24 +1,49 @@
 name: Aegis QA
+
 on:
   pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   qa:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      # Unit tests are required and must fail the job (no continue-on-error).
       - name: unit tests
-        run: cargo test --workspace
-      - name: install aegis
-        run: cargo install --path crates/aegis --force
-      - name: install qa skills
-        run: aegis install-qa
-      - name: Aegis QA
+        run: cargo test --workspace --locked
+
+      - name: Detect live QA secret
+        id: secrets
         env:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
-          if [ -z "$XAI_API_KEY" ]; then
-            echo "XAI_API_KEY secret not set — skipping live QA"
-            exit 0
+          if [ -n "$XAI_API_KEY" ]; then
+            echo "has_xai=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_xai=false" >> "$GITHUB_OUTPUT"
+            echo "XAI_API_KEY secret not set — skipping live QA (unit tests still required)"
           fi
-          aegis qa
+
+      # Install binary before live QA (only when secret is present).
+      - name: install aegis
+        if: steps.secrets.outputs.has_xai == 'true'
+        run: cargo install --path crates/aegis --locked --force
+
+      - name: install qa skills
+        if: steps.secrets.outputs.has_xai == 'true'
+        run: aegis install-qa
+
+      - name: Aegis live QA
+        if: steps.secrets.outputs.has_xai == 'true'
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+        run: aegis qa
