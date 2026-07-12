@@ -124,6 +124,7 @@ async fn run_dream_inner(
     let id = Uuid::new_v4().to_string();
     info!(%id, "dream start");
 
+    let _ = crate::checkpoint::create(project_root, "pre-dream");
     let mut memory = ProjectMemory::open(project_root)?;
     let readiness = assess_v2(project_root);
     let snapshot = build_snapshot(project_root, &readiness, &memory)?;
@@ -212,6 +213,16 @@ async fn run_dream_inner(
     memory.metrics.last_run_id = Some(id);
     memory.metrics.last_run_at = Some(Utc::now().to_rfc3339());
     memory.save_metrics()?;
+
+    crate::notify::notify(
+        "Aegis dream complete",
+        &format!(
+            "project={} applied={:?} proposals={}",
+            project_root.display(),
+            journal.applied,
+            journal.proposals.len()
+        ),
+    );
 
     Ok(journal)
 }

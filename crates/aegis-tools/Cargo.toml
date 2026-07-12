@@ -7,6 +7,7 @@ edition.workspace = true
 aegis-memory.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
+base64 = "0.22"
 chrono.workspace = true
 ignore.workspace = true
 parking_lot.workspace = true

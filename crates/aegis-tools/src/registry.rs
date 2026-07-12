@@ -176,6 +176,7 @@ pub fn default_registry() -> ToolRegistry {
     use crate::search::GlobTool;
     use crate::memory_tools::{MemoryReadTool, MemoryWriteTool};
     use crate::todo::TodoWriteTool;
+    use crate::vision::{ScreenshotTool, VisionDescribeTool};
     use crate::web::WebFetchTool;
 
     let mut reg = ToolRegistry::new();
@@ -192,5 +193,7 @@ pub fn default_registry() -> ToolRegistry {
     reg.register(Arc::new(WebFetchTool));
     reg.register(Arc::new(MemoryReadTool));
     reg.register(Arc::new(MemoryWriteTool));
+    reg.register(Arc::new(VisionDescribeTool));
+    reg.register(Arc::new(ScreenshotTool));
     reg
 }

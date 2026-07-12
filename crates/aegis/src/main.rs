@@ -2,7 +2,7 @@ use aegis_auth::{
     auth_paths, clear_auth_file, device_login, import_grok_to_aegis, AuthProvider, TokenSource,
 };
 use aegis_core::{
-    assess_v2, automations, factory_status, format_factory, format_readiness_v2, generate_wiki,
+    assess_v2, automations, checkpoint_create, checkpoint_list, checkpoint_restore, factory_status, format_factory, format_readiness_v2, generate_wiki,
     install_dream_cron, install_qa, install_review_workflow, install_wiki_workflow, missions_new,
     missions_run, missions_status, readiness_report, review_diff, review_pr, run_dream,
     run_mission, run_plan, run_qa, AegisConfig, AgentLoop, DreamOptions, Effort, MissionOptions,
@@ -136,6 +136,17 @@ enum Commands {
     InstallCodeReview,
     /// Install GH wiki-refresh workflow
     InstallWikiRefresh,
+    /// Git checkpoint / restore
+    Checkpoint {
+        #[command(subcommand)]
+        action: CheckpointCmd,
+    },
+    /// Vision: describe an image
+    Vision {
+        path: String,
+        #[arg(long, default_value = "Describe this image and note any issues.")]
+        question: String,
+    },
     /// File-based automations
     Automation {
         #[command(subcommand)]
@@ -229,6 +240,16 @@ enum DreamCmd {
 enum WikiCmd {
     Generate,
     Refresh,
+}
+
+#[derive(Subcommand, Debug)]
+enum CheckpointCmd {
+    Create {
+        #[arg(default_value = "manual")]
+        label: String,
+    },
+    List,
+    Restore { id: String },
 }
 
 #[derive(Subcommand, Debug)]
@@ -618,6 +639,28 @@ async fn main() -> Result<()> {
             for f in &report.findings {
                 println!("  [{}] {} — {}", f.severity, f.title, f.detail);
             }
+        }
+        Some(Commands::Checkpoint { action }) => {
+            match action {
+                CheckpointCmd::Create { label } => {
+                    let cp = checkpoint_create(&cwd, &label)?;
+                    println!("checkpoint {} (stash={:?})", cp.id, cp.stash_ref);
+                }
+                CheckpointCmd::List => {
+                    for c in checkpoint_list(&cwd)? {
+                        println!("{}  {}  {}", c.id, c.label, c.created_at);
+                    }
+                }
+                CheckpointCmd::Restore { id } => {
+                    println!("{}", checkpoint_restore(&cwd, &id)?);
+                }
+            }
+        }
+        Some(Commands::Vision { path, question }) => {
+            let p = std::path::PathBuf::from(&path);
+            let p = if p.is_absolute() { p } else { cwd.join(p) };
+            let out = aegis_tools::describe_image_file(&p, &question).await?;
+            println!("{out}");
         }
         Some(Commands::InstallQa) => {
             println!("{}", install_qa(&cwd)?);

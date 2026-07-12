@@ -38,11 +38,33 @@ pub async fn review_diff(
         .current_dir(root)
         .output()
         .context("git diff")?;
-    let text = String::from_utf8_lossy(&diff.stdout).to_string();
+    let mut text = String::from_utf8_lossy(&diff.stdout).to_string();
     if text.trim().is_empty() {
-        bail!("no unstaged/staged diff against HEAD; commit or pass --pr");
+        // include untracked via status for review context
+        let st = Command::new("git")
+            .args(["status", "--short"])
+            .current_dir(root)
+            .output()
+            .context("git status")?;
+        let st = String::from_utf8_lossy(&st.stdout).to_string();
+        if st.trim().is_empty() {
+            // still produce a trivial pass report instead of hard fail
+            return Ok(ReviewReport {
+                summary: "No local diff or dirty files to review.".into(),
+                findings: vec![],
+                approve: true,
+            });
+        }
+        text = format!("# git status --short\n{st}\n");
     }
-    review_text(client, model, &text, depth).await
+    let report = review_text(client, model, &text, depth).await?;
+    let dir = root.join(".aegis/reviews");
+    fs::create_dir_all(&dir)?;
+    fs::write(
+        dir.join(format!("diff-{}.md", chrono::Utc::now().format("%Y%m%d_%H%M%S"))),
+        format_report_md(&report),
+    )?;
+    Ok(report)
 }
 
 pub async fn review_pr(

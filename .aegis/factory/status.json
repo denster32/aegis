@@ -14,8 +14,8 @@
     },
     {
       "name": "Validate",
-      "healthy": false,
-      "coverage": "review=false qa=false",
+      "healthy": true,
+      "coverage": "review=false qa=true",
       "detail": "Code review + QA"
     },
     {
@@ -26,14 +26,14 @@
     },
     {
       "name": "Document",
-      "healthy": false,
-      "coverage": "none",
+      "healthy": true,
+      "coverage": "wiki",
       "detail": "AutoWiki / docs/wiki"
     },
     {
       "name": "Monitor",
-      "healthy": false,
-      "coverage": "none",
+      "healthy": true,
+      "coverage": "dream",
       "detail": "Nightly dream / monitoring automations"
     }
   ]

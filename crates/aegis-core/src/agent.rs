@@ -262,6 +262,7 @@ impl AgentLoop {
                 let tools = tools.clone();
                 let emit = self.print_fn.clone();
 
+                let cwd_for_hooks = self.cwd.clone();
                 join_set.spawn(async move {
                     let _permit = sem.acquire().await.ok();
                     let msg = format!("{} {}\n", style("→").cyan(), style(&name).bold());
@@ -270,6 +271,12 @@ impl AgentLoop {
                     } else {
                         eprint!("{msg}");
                     }
+
+                    let _ = crate::hooks::run_hook(
+                        &cwd_for_hooks,
+                        "pre-tool",
+                        &[("AEGIS_TOOL", name.as_str()), ("AEGIS_TOOL_ARGS", args_str.as_str())],
+                    );
 
                     let args: serde_json::Value =
                         serde_json::from_str(&args_str).unwrap_or_else(|_| {
@@ -281,7 +288,8 @@ impl AgentLoop {
                         None => aegis_tools::ToolResult::err(format!("unknown tool: {name}")),
                     };
 
-                    let out = if result.ok {
+                    let ok = result.ok;
+                    let out = if ok {
                         result.output
                     } else {
                         format!("ERROR: {}", result.output)
@@ -291,17 +299,27 @@ impl AgentLoop {
                     } else {
                         out
                     };
-                    (call_id, name, truncated)
+                    let status = if ok { "ok" } else { "err" };
+                    let _ = crate::hooks::run_hook(
+                        &cwd_for_hooks,
+                        "post-tool",
+                        &[
+                            ("AEGIS_TOOL", name.as_str()),
+                            ("AEGIS_TOOL_STATUS", status),
+                        ],
+                    );
+                    (call_id, name, truncated, result.ok)
                 });
             }
 
             // Next request: only tool outputs + previous_response_id (stateful API)
             input.clear();
             let mut heal_notes: Vec<String> = Vec::new();
+            let mut any_ok_after_err = false;
             while let Some(joined) = join_set.join_next().await {
-                let (call_id, name, output) = joined.context("tool join")?;
-                info!(%name, len = output.len(), "tool done");
-                let is_err = output.starts_with("ERROR:");
+                let (call_id, name, output, ok) = joined.context("tool join")?;
+                info!(%name, len = output.len(), ok, "tool done");
+                let is_err = !ok || output.starts_with("ERROR:");
                 if let Some(learn) = self.learn.as_mut() {
                     learn.note(format!(
                         "TOOL {name}: {}",
@@ -315,6 +333,8 @@ impl AgentLoop {
                         if let Some(heal) = learn.on_tool_error(&name, &output) {
                             heal_notes.push(heal);
                         }
+                    } else {
+                        any_ok_after_err = true;
                     }
                 }
                 let preview = if output.len() > 200 {
@@ -327,6 +347,18 @@ impl AgentLoop {
                 input.push(InputItem::FunctionCallOutput(FunctionCallOutput::new(
                     call_id, output,
                 )));
+            }
+            // If we had heal notes and also successes, credit heal soft success
+            if any_ok_after_err {
+                if let Some(learn) = self.learn.as_mut() {
+                    if learn.memory.metrics.heal_attempts > learn.memory.metrics.heal_successes {
+                        learn.record_successful_heal(
+                            "session",
+                            "tool error recovered in subsequent call",
+                            "agent retried and succeeded",
+                        );
+                    }
+                }
             }
             // Inject self-heal guidance as a synthetic user note for next model step
             if !heal_notes.is_empty() {

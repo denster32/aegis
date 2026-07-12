@@ -10,7 +10,10 @@ mod memory_tools;
 mod registry;
 mod search;
 mod todo;
+mod vision;
 mod web;
+
+pub use vision::describe_image_file;
 
 pub use registry::{
     default_registry, PermissionMode, TodoStore, Tool, ToolContext, ToolRegistry, ToolResult,

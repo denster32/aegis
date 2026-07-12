@@ -455,3 +455,21 @@ pub fn format_report(r: &ReadinessV2Report) -> String {
     }
     s
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn levels_on_empty_tmp() {
+        let dir = std::env::temp_dir().join(format!("aegis-ready-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let r = assess_v2(&dir);
+        assert!(r.level >= 1);
+        assert!(r.score_pct <= 100);
+        let _ = fs::remove_dir_all(&dir);
+    }
+}

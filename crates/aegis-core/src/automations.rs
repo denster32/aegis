@@ -130,3 +130,25 @@ pub fn format_list(autos: &[Automation]) -> String {
     }
     s
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn parse_and_list() {
+        let dir = std::env::temp_dir().join(format!("aegis-auto-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(dir.join(".aegis/automations")).unwrap();
+        fs::write(
+            dir.join(".aegis/automations/t.toml"),
+            "name=\"t\"\ncommand=\"factory\"\nenabled=true\nstage=\"monitor\"\n",
+        ).unwrap();
+        let list = list(&dir).unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].name, "t");
+        let _ = fs::remove_dir_all(&dir);
+    }
+}

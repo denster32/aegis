@@ -153,6 +153,7 @@ dependencies = [
  "aegis-memory",
  "anyhow",
  "async-trait",
+ "base64",
  "chrono",
  "ignore",
  "parking_lot",

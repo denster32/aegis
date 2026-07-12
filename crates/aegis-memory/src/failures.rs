@@ -84,4 +84,23 @@ mod tests {
         assert_eq!(a.len(), 16);
         let _ = b;
     }
+
+    #[test]
+    fn find_known_respects_confidence() {
+        let fp = fingerprint("bash", "error foo");
+        let recs = vec![FailureRecord {
+            id: "1".into(),
+            ts: "t".into(),
+            fingerprint: fp.clone(),
+            tool: "bash".into(),
+            pattern: "error foo".into(),
+            root_cause: "x".into(),
+            fix: "y".into(),
+            confidence: 0.9,
+            hits: 1,
+        }];
+        assert!(find_known_fix(&recs, &fp, 0.5).is_some());
+        assert!(find_known_fix(&recs, &fp, 0.95).is_none());
+    }
 }
+
