@@ -277,7 +277,7 @@ fn upsert_section(md: &str, heading: &str, body: &str) -> String {
             &md[..start],
             heading,
             body,
-            &md[end..].trim_start_matches('\n')
+            md[end..].trim_start_matches('\n')
         )
     } else {
         format!("{}\n\n{}\n\n{}\n", md.trim_end(), heading, body)
