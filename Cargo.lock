@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "aegis"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "aegis-auth",
  "aegis-core",
@@ -28,7 +28,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-auth"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -47,7 +47,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-context"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "aegis-memory",
  "anyhow",
@@ -61,7 +61,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-core"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "aegis-context",
  "aegis-memory",
@@ -88,7 +88,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-mcp"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "aegis-tools",
  "anyhow",
@@ -101,7 +101,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-memory"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -118,7 +118,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-store"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -137,7 +137,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-swarm"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "aegis-store",
  "anyhow",
@@ -152,7 +152,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-tools"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "aegis-memory",
  "anyhow",
@@ -177,7 +177,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-xai"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
