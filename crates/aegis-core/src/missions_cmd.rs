@@ -8,7 +8,6 @@ use aegis_swarm::{
 };
 use anyhow::{Context, Result};
 use chrono::Utc;
-use console::style;
 
 /// Collaborative / one-shot mission plan generation.
 pub async fn missions_new(agent: &mut AgentLoop, goal: &str, oneshot: bool) -> Result<MissionPlan> {
@@ -139,10 +138,8 @@ pub async fn missions_run(mut agent: AgentLoop, mission_id: &str) -> Result<Stri
         save_state(&agent.cwd, &state)?;
         plan.save(&agent.cwd)?;
         println!(
-            "\n{}  {}  {}",
-            ui::mark_active(),
-            style(&fid).white().bold(),
-            style(&title).dim()
+            "\n{}",
+            ui::row(&ui::mark_active(), ui::primary_bold(&fid), &title)
         );
 
         let prompt = format!(
@@ -241,14 +238,14 @@ pub fn missions_status(cwd: &std::path::Path, id: Option<&str>) -> Result<String
         s.push_str(&ui::header("missions"));
         s.push('\n');
         if list.is_empty() {
-            s.push_str(&format!("  {}\n", style("none").dim()));
+            s.push_str(&format!("{}\n", ui::empty("none")));
         }
         for p in list {
+            let id8 = &p.id[..8.min(p.id.len())];
+            let goal = p.goal.chars().take(52).collect::<String>();
             s.push_str(&format!(
-                "  {}  {}  {}\n",
-                style(&p.id[..8.min(p.id.len())]).white(),
-                style(format!("{:?}", p.status)).dim(),
-                style(p.goal.chars().take(52).collect::<String>()).dim()
+                "{}\n",
+                ui::list_item(id8, format!("{:?}  {goal}", p.status))
             ));
         }
         s.push('\n');
@@ -266,16 +263,14 @@ pub fn readiness_report(cwd: &std::path::Path) -> String {
     ));
     for c in r.checks {
         s.push_str(&format!(
-            "  {}  {}  {}\n",
-            ui::mark_bool(c.passed),
-            style(&c.name).white(),
-            style(&c.detail).dim()
+            "{}\n",
+            ui::row(&ui::mark_bool(c.passed), &c.name, &c.detail)
         ));
     }
     s.push('\n');
     s.push_str(&format!(
-        "  {}\n",
-        style("prefer high readiness before long missions").dim()
+        "{}\n",
+        ui::hint("prefer high readiness before long missions")
     ));
     s
 }

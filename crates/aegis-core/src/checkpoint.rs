@@ -151,3 +151,96 @@ fn run_git_status(root: &Path, args: &[&str]) -> Result<bool> {
         .with_context(|| format!("git {:?}", args))?;
     Ok(out.status.success())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::process::Command;
+    use tempfile::tempdir;
+
+    fn git_init_with_commit(root: &Path) {
+        let run = |args: &[&str]| {
+            let st = Command::new("git")
+                .args(args)
+                .current_dir(root)
+                .status()
+                .expect("git");
+            assert!(st.success(), "git {args:?}");
+        };
+        run(&["init"]);
+        run(&["config", "user.email", "t@t"]);
+        run(&["config", "user.name", "t"]);
+        std::fs::write(root.join("README.md"), "hi\n").unwrap();
+        run(&["add", "README.md"]);
+        run(&["commit", "-m", "init"]);
+    }
+
+    #[test]
+    fn create_list_checkpoint_clean_tree() {
+        let dir = tempdir().unwrap();
+        git_init_with_commit(dir.path());
+        let cp = create(dir.path(), "test-label").unwrap();
+        assert!(!cp.id.is_empty());
+        assert_eq!(cp.label, "test-label");
+        assert!(cp.commit.is_some());
+        assert!(dir
+            .path()
+            .join(".aegis/checkpoints")
+            .join(format!("{}.json", cp.id))
+            .exists());
+        let listed = list(dir.path()).unwrap();
+        assert!(listed.iter().any(|c| c.id == cp.id));
+    }
+
+    #[test]
+    fn create_with_dirty_tree_may_stash() {
+        let dir = tempdir().unwrap();
+        git_init_with_commit(dir.path());
+        std::fs::write(dir.path().join("dirty.txt"), "x\n").unwrap();
+        let cp = create(dir.path(), "dirty").unwrap();
+        assert!(dir
+            .path()
+            .join(".aegis/checkpoints")
+            .join(format!("{}.status.txt", cp.id))
+            .exists());
+        // stash_ref is optional depending on git stash behavior; file must exist.
+        assert!(!cp.id.is_empty());
+    }
+
+    #[test]
+    fn restore_missing_and_ambiguous() {
+        let dir = tempdir().unwrap();
+        git_init_with_commit(dir.path());
+        let err = restore(dir.path(), "no-such-id").unwrap_err();
+        assert!(err.to_string().contains("not found"));
+
+        // Two checkpoints with same second-precision id is unlikely; craft ambiguous
+        // by writing two JSON files sharing a prefix.
+        let d = checkpoint_dir(dir.path());
+        std::fs::create_dir_all(&d).unwrap();
+        for id in ["20260101_000001", "20260101_000002"] {
+            let cp = Checkpoint {
+                id: id.into(),
+                created_at: "t".into(),
+                label: "l".into(),
+                stash_ref: None,
+                commit: Some("abc".into()),
+                note: "n".into(),
+            };
+            std::fs::write(
+                d.join(format!("{id}.json")),
+                serde_json::to_string(&cp).unwrap(),
+            )
+            .unwrap();
+        }
+        let amb = restore(dir.path(), "20260101").unwrap_err();
+        assert!(amb.to_string().contains("ambiguous"), "{}", amb);
+    }
+
+    #[test]
+    fn list_empty_without_dir() {
+        let dir = tempdir().unwrap();
+        let listed = list(dir.path()).unwrap();
+        assert!(listed.is_empty());
+    }
+}

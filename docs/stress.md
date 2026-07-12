@@ -4,11 +4,13 @@ Live multi-phase harness against Grok OAuth.
 
 ```bash
 ./scripts/stress_test.sh
-# shorter (skip S15–S20 long band + may still run S21–S23 if LONG=1):
+# shorter (skip S15–S20 long band; still runs S21–S27):
 STRESS_LONG=0 ./scripts/stress_test.sh
 ```
 
 Requires `aegis auth status` OK. Unsets `XAI_API_KEY` so a spent console key cannot override subscription OAuth.
+
+**Hard-fail policy (0.8.0+):** every phase needs full success criteria. No soft-pass on partial artifacts.
 
 ## Phases
 
@@ -17,18 +19,18 @@ Requires `aegis auth status` OK. Unsets `XAI_API_KEY` so a spent console key can
 | S0 | CLI / auth / readiness / factory / memory / automation / hardware / evolve status | P0 |
 | S1 | Cold create Rust crate + tests | P1 |
 | S2 | Multi-step edit | P1 |
-| S3 | Induced compile failure + self-heal | **P0** |
+| S3 | Induced compile failure + self-heal + `heal_successes >= 1` | **P0** |
 | S4 | Multi-file writes | P2 |
-| S5 | Swarm mission | P2 |
+| S5 | Swarm mission (exit 0 + README + `cargo test`) | **P0** |
 | S6 | Dream | P2 |
 | S7 | Wiki generate | P2 |
 | S8 | QA | P2 |
-| S9 | Review `--diff` | P2 |
+| S9 | Review `--diff` + artifact | P1 |
 | S10 | Concurrent agents (2) | **P0** |
 | S11 | Grep/edit fidelity (`sub`) | P1 |
 | S12 | Short turn / no hang | P1 |
 | S13 | Learning artifacts under `.aegis/` | P2 |
-| S14 | Checkpoint create | P3 |
+| S14 | Checkpoint create + artifact | P1 |
 | S15 | Multi-module expansion | P1 *(long)* |
 | S16 | Structured plan | P2 *(long)* |
 | S17 | Missions product new/status | P2 *(long)* |
@@ -38,11 +40,16 @@ Requires `aegis auth status` OK. Unsets `XAI_API_KEY` so a spent console key can
 | S21 | Nexus status | P1 |
 | S22 | Spore pack | P1 |
 | S23 | Compress local | P1 |
+| S24 | Sandbox bash / outside deny | **P0** |
+| S25 | Path locks concurrent same file | **P0** |
+| S26 | `web_fetch` SSRF localhost block | P1 |
+| S27 | CLI help surfaces | P1 |
 
 Results: [stress-report.md](./stress-report.md).
 
 ## Notes
 
 - Wall clock is mostly **API-bound** (often 10–25+ minutes for LONG=1).
-- Soft passes: mission may leave files without perfect exit codes; review may write artifacts only.
+- Hard-fail may flake under extreme API latency; re-run once before treating as product regression.
+- S24 asserts no bash leak file and no outside secret in project/log; S26 asserts block language or no loopback body (offline `ssrf_check` unit tests are authoritative for pure SSRF).
 - Always reinstall before a release stress: `./install.sh`

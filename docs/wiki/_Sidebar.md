@@ -1,4 +1,4 @@
-**Aegis 0.7.0**
+**Aegis 0.8.0**
 
 - [Home](Home.md)
 - [Commands](Commands.md)

@@ -1,6 +1,6 @@
 # Feature matrix
 
-Verified against CLI + crates as of **0.7.0**.
+Verified against CLI + crates as of **0.8.0**.
 
 ## Agent
 
@@ -63,8 +63,8 @@ Monochrome SpaceX / xAI terminal chrome — `aegis_core::ui`:
 | Sandbox scope | Tool-layer only (not seccomp/containers); pair with OS isolation for hostile tenants |
 | Stream | `--stream` applies to first agent step only |
 | Wiki refresh | Currently same as `generate` |
-| Unit tests | ~112 offline unit tests; live stress for API path |
-| GitHub Actions | Core CI needs no secrets; use workflow_dispatch if runners idle |
+| Unit tests | offline unit suite (learn/checkpoint/tools/auth/store/swarm/UI); live hard-fail stress for API path |
+| GitHub Actions | Core CI needs no secrets; release on `v*` tags; dependabot weekly |
 
 ## Not productized (future)
 
@@ -72,7 +72,7 @@ Monochrome SpaceX / xAI terminal chrome — `aegis_core::ui`:
 - Image/video generation products
 - OS-level isolation (seccomp / containers) beyond tool-layer `--sandbox`
 
-## Nexus (0.7.0)
+## Nexus
 
 | Feature | Status | Entry |
 |---------|--------|--------|

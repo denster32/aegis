@@ -426,7 +426,6 @@ fn recommend(failing: &[String]) -> Vec<String> {
 
 pub fn format_report(r: &ReadinessV2Report) -> String {
     use crate::ui;
-    use console::style;
 
     let mut s = String::new();
     s.push_str(&ui::header("readiness"));
@@ -447,12 +446,15 @@ pub fn format_report(r: &ReadinessV2Report) -> String {
             ui::mark_idle()
         };
         s.push_str(&format!(
-            "  {}  {}  {}\n",
-            mark,
-            style(format!("{}/{}", p.passed, p.total)).white(),
-            style(&p.name).white()
+            "{}\n",
+            ui::row(&mark, format!("{}/{}", p.passed, p.total), &p.name)
         ));
         for c in &p.criteria {
+            let detail = if c.passed {
+                ui::dim(&c.detail)
+            } else {
+                ui::primary(&c.detail)
+            };
             s.push_str(&format!(
                 "      {}  {}\n",
                 if c.passed {
@@ -460,11 +462,7 @@ pub fn format_report(r: &ReadinessV2Report) -> String {
                 } else {
                     ui::mark_fail()
                 },
-                if c.passed {
-                    style(&c.detail).dim().to_string()
-                } else {
-                    style(&c.detail).white().to_string()
-                }
+                detail
             ));
         }
     }
@@ -474,7 +472,7 @@ pub fn format_report(r: &ReadinessV2Report) -> String {
         s.push_str(&ui::label("next"));
         s.push('\n');
         for rec in &r.recommendations {
-            s.push_str(&format!("  {}  {}\n", ui::mark_active(), style(rec).dim()));
+            s.push_str(&format!("  {}  {}\n", ui::mark_active(), ui::dim(rec)));
         }
     }
     s.push('\n');

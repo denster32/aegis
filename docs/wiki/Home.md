@@ -2,7 +2,7 @@
 
 **Aegis** is a sovereign Grok-native coding agent written in Rust — tools, Missions, project learning, and **Nexus** (evolve · spore · compress · hardware).
 
-**Version:** 0.7.0 · **Repo:** [https://github.com/denster32/aegis](https://github.com/denster32/aegis)
+**Version:** 0.8.0 · **Repo:** [https://github.com/denster32/aegis](https://github.com/denster32/aegis)
 
 ## Start here
 

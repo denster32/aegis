@@ -1,0 +1,7 @@
+# Default maintainers for high-traffic paths
+* @denster32
+
+/crates/ @denster32
+/scripts/ @denster32
+/.github/ @denster32
+/docs/ @denster32

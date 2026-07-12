@@ -116,20 +116,20 @@ pub fn format_factory(s: &FactoryStatus) -> String {
             ui::mark_idle()
         };
         out.push_str(&format!(
-            "  {}  {:<10}  {}  {}\n",
-            mark,
-            st.name,
-            console::style(format!("[{}]", st.coverage)).dim(),
-            console::style(&st.detail).dim()
+            "{}\n",
+            ui::row(
+                &mark,
+                ui::pad_right(&st.name, 10),
+                format!("[{}]  {}", st.coverage, st.detail)
+            )
         ));
     }
     out.push('\n');
     out.push_str(&ui::rule());
     out.push('\n');
     out.push_str(&format!(
-        "  {}\n",
-        console::style("aegis install-qa · install-code-review · dream install · wiki generate")
-            .dim()
+        "{}\n",
+        ui::hint("aegis install-qa · install-code-review · dream install · wiki generate")
     ));
     out
 }

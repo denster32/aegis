@@ -61,6 +61,53 @@ pub fn kv_raw(key: &str, value: impl AsRef<str>) -> String {
     )
 }
 
+// ── text tokens (route all ad-hoc styling here) ─────────────
+
+/// Primary emphasis (white).
+pub fn primary(s: impl AsRef<str>) -> String {
+    style(s.as_ref()).white().to_string()
+}
+
+/// Bold primary (ids, titles).
+pub fn primary_bold(s: impl AsRef<str>) -> String {
+    style(s.as_ref()).white().bold().to_string()
+}
+
+/// Secondary / muted (dim).
+pub fn dim(s: impl AsRef<str>) -> String {
+    style(s.as_ref()).dim().to_string()
+}
+
+/// Empty-state line.
+pub fn empty(msg: impl AsRef<str>) -> String {
+    format!("  {}", dim(msg))
+}
+
+/// Compact board row: mark · primary · dim extras…
+pub fn row(mark: &str, primary_text: impl AsRef<str>, secondary: impl AsRef<str>) -> String {
+    let sec = secondary.as_ref();
+    if sec.is_empty() {
+        format!("  {}  {}", mark, primary(primary_text))
+    } else {
+        format!("  {}  {}  {}", mark, primary(primary_text), dim(sec))
+    }
+}
+
+/// Dense list line without mark: primary + dim tail.
+pub fn list_item(primary_text: impl AsRef<str>, secondary: impl AsRef<str>) -> String {
+    let sec = secondary.as_ref();
+    if sec.is_empty() {
+        format!("  {}", primary(primary_text))
+    } else {
+        format!("  {}  {}", primary(primary_text), dim(sec))
+    }
+}
+
+/// Hint / help footer (dim, indented).
+pub fn hint(msg: impl AsRef<str>) -> String {
+    format!("  {}", dim(msg))
+}
+
 // ── status marks (geometric, monochrome-first) ──────────────
 
 /// Complete / healthy.
@@ -160,7 +207,7 @@ pub fn repl_banner(
         "prompt"
     };
     format!(
-        "\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n  {}\n\n",
+        "\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n\n",
         wordmark(version),
         rule(),
         kv("session", session8),
@@ -169,8 +216,9 @@ pub fn repl_banner(
         kv("mode", mode),
         kv("cwd", cwd),
         rule(),
-        style("/plan · /mission · /missions · /memory · /yolo · /cost · /compact · /model · /clear · /quit")
-            .dim()
+        hint(
+            "/plan · /mission · /missions · /memory · /yolo · /cost · /compact · /model · /clear · /quit"
+        )
     )
 }
 
@@ -203,8 +251,8 @@ pub fn auth_unsigned(detail: &str) -> String {
     format!(
         "{}\n  {}\n  {}\n",
         header("auth"),
-        style("not signed in").white(),
-        style(detail).dim()
+        primary("not signed in"),
+        dim(detail)
     )
 }
 
@@ -222,13 +270,12 @@ pub fn run_header(model: &str, effort: &str, session8: &str) -> String {
 
 /// Pad / truncate to width for board columns.
 pub fn ellipsis(s: &str, max: usize) -> String {
-    let t: String = s.chars().take(max).collect();
     if s.chars().count() > max && max > 1 {
         let mut t: String = s.chars().take(max - 1).collect();
         t.push('…');
         t
     } else {
-        t
+        s.chars().take(max).collect()
     }
 }
 
@@ -256,5 +303,20 @@ mod tests {
         let s = ellipsis("abcdefghij", 5);
         assert_eq!(s.chars().count(), 5);
         assert!(s.ends_with('…'));
+    }
+
+    #[test]
+    fn row_and_empty() {
+        let r = row(&mark_ok(), "id", "tail");
+        assert!(r.contains("id"));
+        assert!(empty("none").contains("none"));
+        assert!(hint("help").contains("help"));
+    }
+
+    #[test]
+    fn primary_dim_tokens() {
+        assert!(!primary("x").is_empty());
+        assert!(!dim("y").is_empty());
+        assert!(!primary_bold("z").is_empty());
     }
 }

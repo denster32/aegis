@@ -2,7 +2,16 @@
 
 ## Reporting
 
-Open a private security advisory or contact the maintainer. Do not file public issues that include tokens.
+Report vulnerabilities via [GitHub Security Advisories](https://github.com/denster32/aegis/security/advisories/new).
+Do not file public issues that include tokens, OAuth material, or customer data.
+
+## Supported versions
+
+| Version | Support |
+|---------|---------|
+| 0.8.x | Current |
+| 0.7.x | Security fixes while 0.8 is new |
+| < 0.7 | Unsupported |
 
 ## Secrets
 

@@ -57,7 +57,7 @@ prepare() {
   done
 
   cat > "$out/_Sidebar.md" << SIDE
-**Aegis 0.7.0**
+**Aegis 0.8.0**
 
 - [Home](Home)
 - [Commands](Commands)
@@ -97,7 +97,7 @@ if git diff --cached --quiet; then
   echo "Wiki already up to date."
   exit 0
 fi
-git commit -m "Sync wiki from docs/wiki (Aegis 0.7.0)"
+git commit -m "Sync wiki from docs/wiki (Aegis 0.8.0)"
 if ! git push -u origin HEAD:master 2>/tmp/wiki-push.err; then
   if ! git push -u origin HEAD:main 2>>/tmp/wiki-push.err; then
     cat /tmp/wiki-push.err >&2

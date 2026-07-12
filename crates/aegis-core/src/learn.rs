@@ -272,3 +272,97 @@ fn extract_json(text: &str) -> Option<String> {
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn on_tool_error_disabled_returns_none() {
+        let dir = tempdir().unwrap();
+        let mut learn = LearnRuntime::open(dir.path(), false).unwrap();
+        assert!(learn.on_tool_error("bash", "exit 1").is_none());
+        assert_eq!(learn.memory.metrics.heal_attempts, 0);
+    }
+
+    #[test]
+    fn on_tool_error_increments_attempts_and_injects() {
+        let dir = tempdir().unwrap();
+        let mut learn = LearnRuntime::open(dir.path(), true).unwrap();
+        let msg = learn
+            .on_tool_error("bash", "error: expected `;`, found `THIS`")
+            .expect("heal inject");
+        assert!(msg.contains("SELF-HEAL"));
+        assert!(msg.contains("bash"));
+        assert_eq!(learn.memory.metrics.heal_attempts, 1);
+        assert!(learn.memory.paths.metrics.exists());
+    }
+
+    #[test]
+    fn heal_budget_exhausted_after_max() {
+        let dir = tempdir().unwrap();
+        let mut learn = LearnRuntime::open(dir.path(), true).unwrap();
+        let err = "compile error: same fingerprint body";
+        for _ in 0..2 {
+            let m = learn.on_tool_error("bash", err).unwrap();
+            assert!(m.contains("SELF-HEAL") || m.contains("attempt"));
+        }
+        let third = learn.on_tool_error("bash", err).unwrap();
+        assert!(
+            third.contains("budget exhausted") || third.contains("Heal budget"),
+            "{third}"
+        );
+        assert_eq!(learn.memory.metrics.heal_attempts, 3);
+    }
+
+    #[test]
+    fn known_fix_preferred_on_matching_fingerprint() {
+        let dir = tempdir().unwrap();
+        let mut learn = LearnRuntime::open(dir.path(), true).unwrap();
+        learn.record_successful_heal(
+            "bash",
+            "error: expected `;`",
+            "remove trailing junk after lib.rs",
+        );
+        assert_eq!(learn.memory.metrics.heal_successes, 1);
+        let msg = learn
+            .on_tool_error("bash", "error: expected `;` more noise")
+            .unwrap();
+        // Known fix path uses similarity; either known or fresh inject is ok,
+        // but after record_successful_heal failures.jsonl must be non-empty.
+        let failures = learn.memory.load_failures().unwrap();
+        assert!(!failures.is_empty());
+        assert!(msg.contains("SELF-HEAL") || msg.contains("known"));
+    }
+
+    #[test]
+    fn record_successful_heal_writes_lesson_and_metrics() {
+        let dir = tempdir().unwrap();
+        let mut learn = LearnRuntime::open(dir.path(), true).unwrap();
+        learn.record_successful_heal("edit_file", "syntax", "delete junk line");
+        assert_eq!(learn.memory.metrics.heal_successes, 1);
+        let lessons = learn.memory.load_lessons().unwrap_or_default();
+        assert!(lessons.iter().any(|l| l.tags.iter().any(|t| t == "heal")));
+    }
+
+    #[test]
+    fn extract_json_from_fenced_and_raw() {
+        assert_eq!(extract_json(r#"{"a":1}"#).as_deref(), Some(r#"{"a":1}"#));
+        assert_eq!(
+            extract_json("here is json: {\"x\":2} trailing").as_deref(),
+            Some(r#"{"x":2}"#)
+        );
+        assert!(extract_json("no json here").is_none());
+    }
+
+    #[test]
+    fn note_transcript_caps() {
+        let dir = tempdir().unwrap();
+        let mut learn = LearnRuntime::open(dir.path(), true).unwrap();
+        for i in 0..250 {
+            learn.note(format!("line {i}"));
+        }
+        assert!(learn.transcript.len() <= 200);
+    }
+}

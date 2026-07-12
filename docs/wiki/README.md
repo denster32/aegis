@@ -23,3 +23,5 @@ first push with a token that can write wikis.
    `GH_TOKEN` env — fine-grained PATs often cannot access wiki git.
 
 Pages: Home, Commands, Architecture, Modules, Nexus, Conventions, `_Sidebar`.
+
+Current version labels in Home / Sidebar: **0.8.0**.

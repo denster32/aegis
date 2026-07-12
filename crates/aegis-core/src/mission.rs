@@ -4,7 +4,6 @@ use crate::ui;
 use aegis_swarm::{MissionGraph, SwarmScheduler, ValidationReport};
 use aegis_tools::PermissionMode;
 use anyhow::{Context, Result};
-use console::style;
 use std::sync::Arc;
 use tracing::info;
 
@@ -53,16 +52,14 @@ pub async fn run_mission(mut boss: AgentLoop, goal: &str, opts: MissionOptions) 
     println!("{}", ui::rule());
     for t in &graph.tasks {
         println!(
-            "  {}  {}  {}",
-            ui::mark_idle(),
-            style(&t.id).white().bold(),
-            style(&t.title).dim()
+            "{}",
+            ui::row(&ui::mark_idle(), ui::primary_bold(&t.id), &t.title)
         );
         if !t.depends_on.is_empty() {
             println!(
                 "      {}  deps {}",
-                style("·").dim(),
-                style(format!("{:?}", t.depends_on)).dim()
+                ui::mark_idle(),
+                ui::dim(format!("{:?}", t.depends_on))
             );
         }
     }
@@ -118,10 +115,8 @@ pub async fn run_mission(mut boss: AgentLoop, goal: &str, opts: MissionOptions) 
             let mission_goal = mission_goal.clone();
             Box::pin(async move {
                 println!(
-                    "\n{}  {}  {}",
-                    ui::mark_active(),
-                    style(&node.id).white().bold(),
-                    style(&node.title).dim()
+                    "\n{}",
+                    ui::row(&ui::mark_active(), ui::primary_bold(&node.id), &node.title)
                 );
 
                 // Collect notes for context
@@ -224,12 +219,7 @@ pub async fn run_mission(mut boss: AgentLoop, goal: &str, opts: MissionOptions) 
                 ui::kv("result", if report.passed { "pass" } else { "fail" })
             );
             for c in &report.checks {
-                println!(
-                    "  {}  {}  {}",
-                    ui::mark_bool(c.passed),
-                    style(&c.name).white(),
-                    style(&c.detail).dim()
-                );
+                println!("{}", ui::row(&ui::mark_bool(c.passed), &c.name, &c.detail));
             }
             if report.passed {
                 store.update_mission_status(&mission_id, "validated")?;

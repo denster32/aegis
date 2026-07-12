@@ -114,16 +114,12 @@ stage = "document"
 
 pub fn format_list(autos: &[Automation]) -> String {
     use crate::ui;
-    use console::style;
     let mut s = String::new();
     s.push_str(&ui::header("automations"));
     s.push('\n');
     if autos.is_empty() {
-        s.push_str(&format!(
-            "  {}\n  {}\n",
-            style("none").dim(),
-            style("aegis automation ensure").dim()
-        ));
+        s.push_str(&format!("{}\n", ui::empty("none")));
+        s.push_str(&format!("{}\n", ui::hint("aegis automation ensure")));
         return s;
     }
     for a in autos {
@@ -132,14 +128,15 @@ pub fn format_list(autos: &[Automation]) -> String {
         } else {
             ui::mark_idle()
         };
+        let args = a.args.join(" ");
+        let tail = if args.is_empty() {
+            format!("t={}  s={}  {}", a.trigger, a.stage, a.command)
+        } else {
+            format!("t={}  s={}  {} {}", a.trigger, a.stage, a.command, args)
+        };
         s.push_str(&format!(
-            "  {}  {:<16}  {}  {}  {} {}\n",
-            mark,
-            a.name,
-            style(format!("t={}", a.trigger)).dim(),
-            style(format!("s={}", a.stage)).dim(),
-            style(&a.command).white(),
-            style(a.args.join(" ")).dim()
+            "{}\n",
+            ui::row(&mark, ui::pad_right(&a.name, 16), tail)
         ));
     }
     s.push('\n');

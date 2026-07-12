@@ -32,3 +32,22 @@ jobs:
 
       - name: release build
         run: cargo build --release -p aegis --locked
+
+  # Optional second host for contributors on macOS (no secrets).
+  test-macos:
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: test
+        run: cargo test --workspace --locked
+
+      - name: clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings

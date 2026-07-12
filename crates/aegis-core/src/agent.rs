@@ -189,6 +189,7 @@ impl AgentLoop {
         let mut had_tools_last = false;
         // Credit heal when a later tool step succeeds after self-heal guidance.
         let mut pending_heal_credit = false;
+        let mut heal_credited = false;
 
         loop {
             steps += 1;
@@ -361,13 +362,13 @@ impl AgentLoop {
             input.clear();
             let mut heal_notes: Vec<String> = Vec::new();
             let mut any_ok = false;
-            let mut any_err = false;
+            let mut _any_err = false;
             while let Some(joined) = join_set.join_next().await {
                 let (call_id, name, output, ok) = joined.context("tool join")?;
                 info!(%name, len = output.len(), ok, "tool done");
                 let is_err = !ok || output.starts_with("ERROR:");
                 if is_err {
-                    any_err = true;
+                    _any_err = true;
                 } else {
                     any_ok = true;
                 }
@@ -389,15 +390,18 @@ impl AgentLoop {
                     call_id, output,
                 )));
             }
-            // Prior heal guidance followed by a successful tool → credit heal success.
-            if pending_heal_credit && any_ok && !any_err {
+            // Prior heal guidance + any subsequent tool success → credit once.
+            // Require at least one ok tool after guidance; do not require a fully clean
+            // parallel batch (mixed ok/err is common while recovering compile failures).
+            if pending_heal_credit && any_ok && !heal_credited {
                 if let Some(learn) = self.learn.as_mut() {
                     learn.record_successful_heal(
                         "session",
                         "tool error recovered after self-heal guidance",
-                        "subsequent tools succeeded",
+                        "subsequent tool(s) succeeded after heal guidance",
                     );
                 }
+                heal_credited = true;
                 pending_heal_credit = false;
             }
             // Inject self-heal guidance as a synthetic user note for next model step

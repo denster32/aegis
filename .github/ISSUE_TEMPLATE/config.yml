@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation wiki
+    url: https://github.com/denster32/aegis/wiki
+    about: Commands, architecture, Nexus, and stress harness docs
+  - name: Security vulnerability
+    url: https://github.com/denster32/aegis/security/advisories/new
+    about: Private security report (do not open a public issue with tokens)

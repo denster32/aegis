@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.8.0 — 2026-07-12
+
+### Bulletproof reliability
+
+- **Heal credit fix** — after self-heal guidance, the next successful tool call increments `heal_successes` once (mixed ok/err batches allowed)
+- **Hard-fail stress** — no soft-pass on mission/review/checkpoint; S3 requires `heal_successes >= 1`
+- **Stress S24–S27** — sandbox bash deny, path-lock concurrent edit, SSRF probe, CLI help surfaces
+- **Unit coverage** — learn runtime, checkpoint create/list/restore ambiguity, expanded UI tokens
+
+### UI
+
+- All CLI boards route through `aegis_core::ui` (`primary` / `dim` / `row` / `empty` / `hint`)
+- Density pass: consistent marks, fixed-width keys, monochrome only
+
+### GitHub / OSS traffic
+
+- Issue templates (bug + feature), config.yml, richer PR template
+- Dependabot (cargo + actions), CODEOWNERS, release workflow (linux binary + SHA256)
+- CI optional macOS job on main / workflow_dispatch
+- Contributor Covenant CoC, expanded CONTRIBUTING + SECURITY supported versions
+
 ## 0.7.0 — 2026-07-12
 
 ### Aegis Nexus (living immune system MVP)

@@ -1,25 +1,26 @@
-# Release 0.7.0
+# Release 0.8.0
 
-**Status:** production-ready (Nexus + sandbox + thick tests + CI)  
+**Status:** production-ready (bulletproof tests + hard stress + UI unify + OSS traffic pack)  
 **Date:** 2026-07-12  
-**Tag:** `v0.7.0`
+**Tag:** `v0.8.0`
 
 ## Product
 
 Sovereign Grok-native coding agent in Rust:
 
 - OAuth via `~/.grok/auth.json`
-- Agent tools + Missions + project learning
+- Agent tools + Missions + project learning (heal credit fixed)
 - Platform: dream, readiness, factory, wiki, QA, review, automations
 - **Nexus:** evolve · spore · compress · hardware · capability map
-- Monochrome SpaceX / xAI CLI and brand
+- Monochrome SpaceX / xAI CLI (single `ui` chrome path)
+- Hard-fail live stress S0–S27
 
 ## Install
 
 ```bash
 git clone https://github.com/denster32/aegis.git
 cd aegis && ./install.sh
-aegis --version   # 0.7.0
+aegis --version   # 0.8.0
 grok login && aegis auth status
 aegis --sandbox -p "Summarize README.md"
 ```
@@ -32,54 +33,20 @@ cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo build --release -p aegis --locked
 ./scripts/live_smoke.sh
-# optional long:
-./scripts/stress_test.sh
+STRESS_LONG=1 ./scripts/stress_test.sh   # hard-fail; FAIL must be 0
 ```
 
 ## Continuous integration
 
-Core CI (`.github/workflows/ci.yml`) runs on push to `main`/`master`, pull requests, and
-`workflow_dispatch`. It needs **no external secrets**:
-
-| Step | Command |
-|------|---------|
-| Cache | `Swatinem/rust-cache@v2` |
-| Format | `cargo fmt --all -- --check` |
-| Tests | `cargo test --workspace --locked` |
-| Lint | `cargo clippy --workspace --all-targets --locked -- -D warnings` |
-| Release build | `cargo build --release -p aegis --locked` |
-
-`Cargo.lock` is committed; all cargo steps use `--locked` so CI matches the lockfile.
-
-Optional live QA (`.github/workflows/aegis-qa.yml`) always runs unit tests (failures fail the job).
-Live `aegis qa` runs only when repository secret `XAI_API_KEY` is set; otherwise that path is
-skipped. Binary install happens before live QA.
-
-If private-repo Actions has no available runners, workflows still define the correct green path —
-re-run via **Actions → CI → Run workflow** once runners are available.
-
-## Assets (canonical)
-
-| File | Role |
-|------|------|
-| `assets/logo.svg` | Mark (README) |
-| `assets/logo.png` | Raster mark (vision fallback / tooling) |
-| `assets/banner.svg` | Hero (README) |
-| `assets/banner.png` | Raster hero |
-| `assets/learning-loop.svg` | Learning diagram (README) |
-| `assets/mission-control.svg` | Mission board art (README) |
-| `assets/dream-cycle.svg` | Dream pipeline |
-| `assets/og.png` | Social / preview (monochrome) |
-| `assets/screenshots/*` | Product shots (brand-kit, cli-surfaces, readme-preview) |
-
-## Not in scope
-
-- OS multi-tenant isolation (seccomp/containers) beyond tool-layer `--sandbox`
-- Guaranteed GitHub-hosted runner availability (private-repo quota is infra, not workflow config)
-- FPGA/TPM drivers, Nostr P2P, on-device local LLMs
+| Workflow | Notes |
+|----------|--------|
+| CI | fmt · test · clippy · release build (no secrets); optional macOS on main |
+| QA | unit always; live if `XAI_API_KEY` |
+| Release | tag `v*` → linux binary + SHA256SUMS |
+| Dependabot | cargo + github-actions weekly |
 
 ## Maintain
 
 - Prefer OAuth over console API keys
-- Use `--yolo` only in trusted sandboxes
+- Use `--yolo` only in trusted workspaces; prefer `--sandbox` for untrusted trees
 - See [SECURITY.md](../SECURITY.md) and [features.md](features.md)

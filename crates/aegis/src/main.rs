@@ -21,7 +21,6 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use clap::builder::styling::{AnsiColor, Effects, Styles};
 use clap::{Parser, Subcommand};
-use console::style;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -501,13 +500,13 @@ async fn main() -> Result<()> {
             println!("{}", ui::header("evolve"));
             let ids = list_run_ids(&cwd_early).unwrap_or_default();
             if ids.is_empty() {
-                println!("  {}", style("none").dim());
+                println!("{}", ui::empty("none"));
             } else {
                 for id in ids {
                     if let Ok(run) = load_run(&cwd_early, &id) {
                         println!(
                             "  {}  genes={}  best={}",
-                            style(&id[..8.min(id.len())]).white(),
+                            ui::primary(&id[..8.min(id.len())]),
                             run.genes.len(),
                             run.best_gene_id.as_deref().unwrap_or("—")
                         );
@@ -548,9 +547,9 @@ async fn main() -> Result<()> {
             for s in &scored.scores {
                 println!(
                     "  {}  {:.2}  {}",
-                    style(&s.gene_id[..8.min(s.gene_id.len())]).white(),
+                    ui::primary(&s.gene_id[..8.min(s.gene_id.len())]),
                     s.score,
-                    style(&s.notes).dim()
+                    ui::dim(&s.notes)
                 );
             }
             return Ok(());
@@ -594,19 +593,14 @@ async fn main() -> Result<()> {
             for s in store.list_sessions(*limit)? {
                 println!(
                     "  {}  {}  {}",
-                    style(&s.id[..8.min(s.id.len())]).white(),
-                    style(&s.model).dim(),
-                    style(format!(
+                    ui::primary(&s.id[..8.min(s.id.len())]),
+                    ui::dim(&s.model),
+                    ui::dim(format!(
                         "in={} out={}",
                         s.total_input_tokens, s.total_output_tokens
                     ))
-                    .dim()
                 );
-                println!(
-                    "      {}  {}",
-                    style(&s.updated_at).dim(),
-                    style(&s.cwd).dim()
-                );
+                println!("      {}  {}", ui::dim(&s.updated_at), ui::dim(&s.cwd));
             }
             return Ok(());
         }
@@ -633,9 +627,9 @@ async fn main() -> Result<()> {
             for m in store.messages(&s.id)? {
                 println!(
                     "  {}  {}  {}",
-                    style(&m.role).dim(),
-                    style(&m.created_at).dim(),
-                    style(truncate(&m.content, 240)).white()
+                    ui::dim(&m.role),
+                    ui::dim(&m.created_at),
+                    ui::primary(truncate(&m.content, 240))
                 );
             }
             return Ok(());
@@ -677,7 +671,7 @@ async fn main() -> Result<()> {
             println!("{}", ui::kv("cleared", ap.aegis.display().to_string()));
             println!(
                 "  {}",
-                style("~/.grok/auth.json left intact — grok logout to clear").dim()
+                ui::dim("~/.grok/auth.json left intact — grok logout to clear")
             );
             return Ok(());
         }
@@ -911,11 +905,11 @@ async fn main() -> Result<()> {
                 println!(
                     "  {}  {}  {}",
                     ui::mark_idle(),
-                    style(&p.kind).dim(),
-                    style(&p.title).white()
+                    ui::dim(&p.kind),
+                    ui::primary(&p.title)
                 );
             }
-            println!("\n  {}", style("journal · .aegis/dreams/").dim());
+            println!("\n  {}", ui::dim("journal · .aegis/dreams/"));
         }
         Some(Commands::Wiki { action }) => {
             let model = config.model.clone();
@@ -948,9 +942,9 @@ async fn main() -> Result<()> {
                 println!(
                     "  {}  {}  {}  {}",
                     ui::mark_idle(),
-                    style(&f.severity).dim(),
-                    style(&f.title).white(),
-                    style(&f.detail).dim()
+                    ui::dim(&f.severity),
+                    ui::primary(&f.title),
+                    ui::dim(&f.detail)
                 );
             }
         }
@@ -966,9 +960,9 @@ async fn main() -> Result<()> {
                 for c in checkpoint_list(&cwd)? {
                     println!(
                         "  {}  {}  {}",
-                        style(&c.id).white(),
-                        style(&c.label).dim(),
-                        style(&c.created_at).dim()
+                        ui::primary(&c.id),
+                        ui::dim(&c.label),
+                        ui::dim(&c.created_at)
                     );
                 }
             }
@@ -1112,9 +1106,9 @@ async fn main() -> Result<()> {
             for g in &run.genes {
                 println!(
                     "  {}  {}  {}",
-                    style(&g.id[..8.min(g.id.len())]).white(),
-                    style(format!("{:?}", g.kind)).dim(),
-                    style(&g.title).white()
+                    ui::primary(&g.id[..8.min(g.id.len())]),
+                    ui::dim(format!("{:?}", g.kind)),
+                    ui::primary(&g.title)
                 );
             }
             println!(
@@ -1451,7 +1445,7 @@ fn nexus_status(cwd: &std::path::Path, sandbox_flag: bool) -> Result<String> {
     let _ = writeln!(
         s,
         "  {}",
-        style("evolve · spore · compress · hardware · --sandbox").dim()
+        ui::dim("evolve · spore · compress · hardware · --sandbox")
     );
     Ok(s)
 }

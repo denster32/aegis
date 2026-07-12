@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.7.0-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="version"/>
+  <img src="https://img.shields.io/badge/version-0.8.0-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="version"/>
   <img src="https://img.shields.io/badge/rust-1.96+-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="rust"/>
   <img src="https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="license"/>
   <img src="https://img.shields.io/badge/ui-monochrome-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="ui"/>
@@ -99,7 +99,7 @@ See [docs/nexus.md](docs/nexus.md).
 SpaceX / xAI monochrome: white primary · dim secondary · thin rules · geometric marks `● · ▸ ×`
 
 ```
-AEGIS  0.7.0
+AEGIS  0.8.0
 ────────────────────────────────────────────────────────
   session         a1b2c3d4
   model           grok-4.5
