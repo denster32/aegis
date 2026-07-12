@@ -63,7 +63,7 @@ Monochrome SpaceX / xAI terminal chrome — `aegis_core::ui`:
 | Sandbox scope | Tool-layer only (not seccomp/containers); pair with OS isolation for hostile tenants |
 | Stream | `--stream` applies to first agent step only |
 | Wiki refresh | Currently same as `generate` |
-| Unit tests | ~95 offline unit tests; live stress optional for API path |
+| Unit tests | ~112 offline unit tests; live stress for API path |
 | GitHub Actions | Core CI needs no secrets; use workflow_dispatch if runners idle |
 
 ## Not productized (future)

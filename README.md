@@ -32,6 +32,7 @@
 | **Learning** | Self-heal mid-run · reflect · `.aegis/` memory |
 | **Missions** | Plan → Mission Control → execute → validate |
 | **Platform** | Dream · readiness · factory · wiki · QA · review · automations |
+| **Nexus** | Evolve · spore · compress · hardware · capability map |
 | **Binary** | ~16 MB Rust CLI · ~2 ms cold start · no Node runtime |
 
 <p align="center">
@@ -97,7 +98,7 @@ See [docs/nexus.md](docs/nexus.md).
 SpaceX / xAI monochrome: white primary · dim secondary · thin rules · geometric marks `● · ▸ ×`
 
 ```
-AEGIS  0.6.0
+AEGIS  0.7.0
 ────────────────────────────────────────────────────────
   session         a1b2c3d4
   model           grok-4.5
@@ -112,15 +113,18 @@ AEGIS  0.6.0
 
 ```
 aegis (CLI)
-  ├── aegis-core      agent · missions · dream · factory · ui
-  ├── aegis-auth      Grok OAuth
-  ├── aegis-xai       Responses API
-  ├── aegis-tools     coding tools + locks
-  ├── aegis-memory    .aegis/ learning
-  ├── aegis-swarm     DAG + Mission Control
-  ├── aegis-context   workspace pack
-  ├── aegis-store     SQLite sessions
-  └── aegis-mcp       optional MCP
+  ├── aegis-core         agent · missions · dream · factory · ui
+  ├── aegis-auth         Grok OAuth
+  ├── aegis-xai          Responses API
+  ├── aegis-tools        coding tools + locks + capability map
+  ├── aegis-memory       .aegis/ learning · neural summary
+  ├── aegis-swarm        DAG + Mission Control
+  ├── aegis-evolution    mutation genes + fitness
+  ├── aegis-spore        viral pack / vaccinate
+  ├── aegis-hardware     host probe + throttle policy
+  ├── aegis-context      workspace pack
+  ├── aegis-store        SQLite sessions
+  └── aegis-mcp          optional MCP
 ```
 
 <p align="center">
@@ -132,11 +136,13 @@ aegis (CLI)
 | | |
 |---|---|
 | [features.md](docs/features.md) | Feature matrix |
+| [nexus.md](docs/nexus.md) | Living immune system |
 | [architecture.md](docs/architecture.md) | Crates |
 | [xai-capabilities.md](docs/xai-capabilities.md) | Grok 4.5 knobs |
 | [learning.md](docs/learning.md) | Memory & heal |
 | [missions.md](docs/missions.md) | Factory Missions |
 | [stress.md](docs/stress.md) | Live stress harness |
+| [RELEASE.md](docs/RELEASE.md) | Release / verify |
 | [SECURITY.md](SECURITY.md) | Threat model |
 | [audit-2026-07-12.md](docs/audit-2026-07-12.md) | Full audit |
 

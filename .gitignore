@@ -20,6 +20,9 @@
 **/.aegis/dreams/
 **/.aegis/readiness/
 **/.aegis/factory/
+**/.aegis/nexus/evolution/
+**/.aegis/nexus/capability-map.json
+**/.aegis/nexus/spore-out/
 # intentionally tracked seeds (do not ignore):
 #   .aegis/skills/  .aegis/SKILLS/  .aegis/automations/
 # dogfooding may force-add MEMORY/LESSONS/FAILURES when useful

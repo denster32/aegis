@@ -55,6 +55,8 @@ if "$AEGIS" automation list --cwd "$ROOT" >>"$LOG" 2>&1 || "$AEGIS" --cwd "$ROOT
 else
   bad "automation list"
 fi
+if "$AEGIS" --cwd "$ROOT" hardware probe >>"$LOG" 2>&1; then ok "hardware probe"; else bad "hardware probe"; fi
+if "$AEGIS" --cwd "$ROOT" evolve status >>"$LOG" 2>&1; then ok "evolve status"; else bad "evolve status"; fi
 
 # ---------- S1 cold crate ----------
 phase "S1 cold crate create"

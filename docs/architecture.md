@@ -2,52 +2,66 @@
 
 ```
 ┌──────────────── CLI (aegis) ────────────────┐
-│ agent · missions · dream · factory · wiki   │
-│ review · qa · automation · memory · auth    │
+│ agent · missions · nexus · evolve · spore   │
+│ dream · factory · hardware · compress       │
 └─────────────────────┬───────────────────────┘
                       │
-     ┌────────────────┼────────────────┬──────────────┐
-     ▼                ▼                ▼              ▼
- aegis-auth      aegis-core       aegis-swarm    aegis-mcp
-     │                │                │              │
-     │     ┌──────────┼──────────┐     │              │
-     │     ▼          ▼          ▼     ▼              ▼
-     │  memory     tools      context store         tools
+     ┌────────────────┼────────────────┬──────────────────┐
+     ▼                ▼                ▼                  ▼
+ aegis-auth      aegis-core       aegis-swarm      aegis-evolution
+     │                │                │                  │
+     │     ┌──────────┼──────────┐     │         aegis-spore
+     │     ▼          ▼          ▼     ▼         aegis-hardware
+     │  memory     tools      context store
      │     │          │          │     │
      └─────┴──── aegis-xai ──────┴─────┘
                       │
                  api.x.ai (Responses)
+                      │
+                   aegis-mcp (optional)
 ```
 
 | Crate | Responsibility |
 |-------|----------------|
 | **aegis** | Clap CLI, wiring, install helpers |
 | **aegis-auth** | Grok OAuth device flow, auth files, refresh |
-| **aegis-core** | Agent loop, heal/reflect, missions, dream, factory, readiness, wiki, QA, review, hooks, checkpoints, UI |
+| **aegis-core** | Agent loop, heal/reflect, missions, dream, factory, readiness, wiki, QA, review, UI |
 | **aegis-xai** | Responses client: tools, reasoning, cache key, streaming |
-| **aegis-tools** | Local coding tools + path locks + permissions |
-| **aegis-memory** | `.aegis/` files, lessons, failures, redaction |
+| **aegis-tools** | Local coding tools + path locks + capability map |
+| **aegis-memory** | `.aegis/` files, lessons, failures, redaction, neural summary |
 | **aegis-swarm** | DAG scheduling, Mission Control types |
-| **aegis-context** | Workspace pack for bootstrap context |
+| **aegis-evolution** | Mutation genes, Grok propose, local fitness |
+| **aegis-spore** | Viral pack / unpack / vaccinate |
+| **aegis-hardware** | Host probe + throttle policy |
+| **aegis-context** | Workspace pack (+ nexus summary inject) |
 | **aegis-store** | Sessions, usage, todos (SQLite) |
-| **aegis-mcp** | MCP bridge (optional; tools only) |
+| **aegis-mcp** | MCP bridge (optional) |
 
 ## Edges (intentional)
 
 - `tools → memory` for `memory_read` / `memory_write`
-- `context → memory` for inject
+- `context → memory` for inject + neural summary
 - `swarm → store` for mission task rows
-- **No cycles.** tools/memory/xai/auth do not depend on core.
+- `spore → memory` for redaction
+- `evolution → xai` for gene proposals
+- **No cycles.**
 
 ## Hot path
 
 1. Resolve credentials (env → Aegis auth → Grok auth → API key)
-2. Pack workspace + inject memory lessons
-3. Responses loop: model → local tools (parallel) → tool outputs → model  
-   (`store=true` for tool chains; `reasoning` only on grok-4/3)
+2. Pack workspace + inject memory + neural summary
+3. Responses loop: model → local tools (parallel) → tool outputs → model
 4. Self-heal on tool errors when learning enabled
-5. Reflect into `.aegis/` at end of turn/session
+5. Reflect / compress into `.aegis/`
 
-## Performance note
+## Nexus layout
 
-Wall time is dominated by **API latency + tokens**, not the Rust CLI.
+```
+.aegis/nexus/
+  neural-summary.json
+  capability-map.json
+  evolution/<run-id>.json
+  spore-out/   # optional pack target
+```
+
+See [nexus.md](./nexus.md).

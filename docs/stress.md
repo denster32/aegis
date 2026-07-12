@@ -4,7 +4,7 @@ Live multi-phase harness against Grok OAuth.
 
 ```bash
 ./scripts/stress_test.sh
-# shorter (skip S15–S20):
+# shorter (skip S15–S20 long band + may still run S21–S23 if LONG=1):
 STRESS_LONG=0 ./scripts/stress_test.sh
 ```
 
@@ -14,7 +14,7 @@ Requires `aegis auth status` OK. Unsets `XAI_API_KEY` so a spent console key can
 
 | ID | Scenario | Severity if fail |
 |----|----------|------------------|
-| S0 | CLI / auth / readiness / factory / memory / automation | P0 |
+| S0 | CLI / auth / readiness / factory / memory / automation / hardware / evolve status | P0 |
 | S1 | Cold create Rust crate + tests | P1 |
 | S2 | Multi-step edit | P1 |
 | S3 | Induced compile failure + self-heal | **P0** |
@@ -29,12 +29,15 @@ Requires `aegis auth status` OK. Unsets `XAI_API_KEY` so a spent console key can
 | S12 | Short turn / no hang | P1 |
 | S13 | Learning artifacts under `.aegis/` | P2 |
 | S14 | Checkpoint create | P3 |
-| S15 | Multi-module expansion (`math.rs`) | P1 *(long)* |
+| S15 | Multi-module expansion | P1 *(long)* |
 | S16 | Structured plan | P2 *(long)* |
 | S17 | Missions product new/status | P2 *(long)* |
 | S18 | Second induced heal | **P0** *(long)* |
 | S19 | Triple concurrent writes | **P0** *(long)* |
 | S20 | Final `cargo test` green | P1 *(long)* |
+| S21 | Nexus status | P1 |
+| S22 | Spore pack | P1 |
+| S23 | Compress local | P1 |
 
 Results: [stress-report.md](./stress-report.md).
 

@@ -21,7 +21,7 @@
     {
       "name": "Release",
       "healthy": true,
-      "coverage": "docs",
+      "coverage": "workflow",
       "detail": "Release workflows / changelog"
     },
     {

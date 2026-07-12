@@ -187,6 +187,8 @@ impl AgentLoop {
         let mut steps = 0usize;
         // After a tool-bearing step, lower reasoning for subsequent tool-loop turns.
         let mut had_tools_last = false;
+        // Credit heal when a later tool step succeeds after self-heal guidance.
+        let mut pending_heal_credit = false;
 
         loop {
             steps += 1;
@@ -358,10 +360,17 @@ impl AgentLoop {
             // Next request: only tool outputs + previous_response_id (stateful API)
             input.clear();
             let mut heal_notes: Vec<String> = Vec::new();
+            let mut any_ok = false;
+            let mut any_err = false;
             while let Some(joined) = join_set.join_next().await {
                 let (call_id, name, output, ok) = joined.context("tool join")?;
                 info!(%name, len = output.len(), ok, "tool done");
                 let is_err = !ok || output.starts_with("ERROR:");
+                if is_err {
+                    any_err = true;
+                } else {
+                    any_ok = true;
+                }
                 if let Some(learn) = self.learn.as_mut() {
                     learn.note(format!(
                         "TOOL {name}: {}",
@@ -380,8 +389,20 @@ impl AgentLoop {
                     call_id, output,
                 )));
             }
+            // Prior heal guidance followed by a successful tool → credit heal success.
+            if pending_heal_credit && any_ok && !any_err {
+                if let Some(learn) = self.learn.as_mut() {
+                    learn.record_successful_heal(
+                        "session",
+                        "tool error recovered after self-heal guidance",
+                        "subsequent tools succeeded",
+                    );
+                }
+                pending_heal_credit = false;
+            }
             // Inject self-heal guidance as a synthetic user note for next model step
             if !heal_notes.is_empty() {
+                pending_heal_credit = true;
                 let combined = heal_notes.join("\n\n");
                 input.push(user_msg(format!(
                     "[system self-heal guidance — follow this next]\n{combined}"

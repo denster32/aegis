@@ -1,11 +1,11 @@
 # Aegis Stress Report
 
-- Date: 2026-07-11T23:33:28-05:00
-- Version: `aegis 0.5.1`
-- Duration: 285s (~4.7 min)
-- STRESS_ROOT: `/tmp/aegis-stress-ZYkwLG`
+- Date: 2026-07-12T00:16:08-05:00
+- Version: `aegis 0.7.0`
+- Duration: 201s (~3.3 min)
+- STRESS_ROOT: `/tmp/aegis-stress-lHjVmf`
 - STRESS_LONG: `1`
-- PASS: **28**
+- PASS: **31**
 - FAIL: **0**
 - SKIP: **0**
 
@@ -21,95 +21,68 @@
 ## Artifacts
 
 ```
-proj tree (depth 3):
-/tmp/aegis-stress-ZYkwLG/proj/Cargo.toml
-/tmp/aegis-stress-ZYkwLG/proj/README.md
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/sendemail-validate.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/pre-merge-commit.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/pre-push.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/pre-rebase.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/pre-applypatch.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/push-to-checkout.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/post-update.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/fsmonitor-watchman.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/pre-commit.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/update.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/commit-msg.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/pre-receive.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/prepare-commit-msg.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/hooks/applypatch-msg.sample
-/tmp/aegis-stress-ZYkwLG/proj/.git/COMMIT_EDITMSG
-/tmp/aegis-stress-ZYkwLG/proj/.git/logs/HEAD
-/tmp/aegis-stress-ZYkwLG/proj/.git/AUTO_MERGE
-/tmp/aegis-stress-ZYkwLG/proj/.git/refs/stash
-/tmp/aegis-stress-ZYkwLG/proj/.git/index
-/tmp/aegis-stress-ZYkwLG/proj/.git/info/exclude
-/tmp/aegis-stress-ZYkwLG/proj/.git/ORIG_HEAD
-/tmp/aegis-stress-ZYkwLG/proj/.git/config
-/tmp/aegis-stress-ZYkwLG/proj/.git/HEAD
-/tmp/aegis-stress-ZYkwLG/proj/.git/description
-/tmp/aegis-stress-ZYkwLG/proj/Cargo.lock
-/tmp/aegis-stress-ZYkwLG/proj/src/lib.rs
-/tmp/aegis-stress-ZYkwLG/proj/src/lib.rs.bak
-/tmp/aegis-stress-ZYkwLG/proj/src/math.rs
-/tmp/aegis-stress-ZYkwLG/proj/.github/workflows/aegis-qa.yml
-/tmp/aegis-stress-ZYkwLG/proj/docs/C_A.md
-/tmp/aegis-stress-ZYkwLG/proj/docs/NOTE2.md
-/tmp/aegis-stress-ZYkwLG/proj/docs/C_C.md
-/tmp/aegis-stress-ZYkwLG/proj/docs/C_B.md
-/tmp/aegis-stress-ZYkwLG/proj/docs/wiki/Architecture.md
-/tmp/aegis-stress-ZYkwLG/proj/docs/wiki/Commands.md
-/tmp/aegis-stress-ZYkwLG/proj/docs/wiki/Modules.md
-/tmp/aegis-stress-ZYkwLG/proj/docs/wiki/Conventions.md
-/tmp/aegis-stress-ZYkwLG/proj/docs/wiki/Home.md
-/tmp/aegis-stress-ZYkwLG/proj/docs/wiki/_Sidebar.md
-/tmp/aegis-stress-ZYkwLG/proj/docs/NOTE1.md
-/tmp/aegis-stress-ZYkwLG/proj/docs/NOTE3.md
-/tmp/aegis-stress-ZYkwLG/proj/target/.rustc_info.json
-/tmp/aegis-stress-ZYkwLG/proj/target/debug/.cargo-build-lock
-/tmp/aegis-stress-ZYkwLG/proj/target/debug/.cargo-lock
-/tmp/aegis-stress-ZYkwLG/proj/target/debug/.cargo-artifact-lock
-/tmp/aegis-stress-ZYkwLG/proj/target/CACHEDIR.TAG
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/reviews/diff-20260712_043203.md
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/LESSONS.jsonl
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/dreams/2026-07-12_043151.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/dreams/2026-07-12_043151.md
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/SKILLS/rust-lib-heal.md
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/checkpoints/20260712_043242.status.txt
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/checkpoints/20260712_043127.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/checkpoints/20260712_043127.status.txt
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/checkpoints/20260712_043242.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/metrics.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/FAILURES.jsonl
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/readiness/report.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/0f98d554-b4d7-45ff-9c72-bbcd5e5b6a03.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/1c2a4df8-12e6-4ecd-992d-f08b971b8a3a.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/ce2591fa-cc6b-4e96-95f1-47973b1bb2f4.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/4e8fec3e-f41d-435f-b5ca-758b279776df.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/6f40b133-f0db-4bd6-adda-58cf754e7ed9.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/20171d9a-8d1e-4beb-8fe4-e228a9bdc30e.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/94719d03-c05a-4953-84b0-5e26cb9af47e.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/d4806777-c872-4d23-9058-90cb32fd368a.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/a138bf15-a755-444f-b834-fb66ed85f6c5.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/a9f27ba8-d95d-4aeb-a77e-c5f18621edb0.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/e2f1851d-f876-441d-8d4c-dba832719139.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/fb17a86e-ce8f-4976-b02f-6e741dfc25c5.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/2bc01a7a-0bcf-4842-98c2-8f11f1ec5018.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/runs/40d319a1-889b-46ce-9969-92b06e16bc4c.json
-/tmp/aegis-stress-ZYkwLG/proj/.aegis/MEMORY.md
+proj highlights:
+/tmp/aegis-stress-lHjVmf/proj/Cargo.toml
+/tmp/aegis-stress-lHjVmf/proj/README.md
+/tmp/aegis-stress-lHjVmf/proj/Cargo.lock
+/tmp/aegis-stress-lHjVmf/proj/src/lib.rs
+/tmp/aegis-stress-lHjVmf/proj/src/lib.rs.bak
+/tmp/aegis-stress-lHjVmf/proj/src/math.rs
+/tmp/aegis-stress-lHjVmf/proj/.github/workflows/aegis-qa.yml
+/tmp/aegis-stress-lHjVmf/proj/docs/C_A.md
+/tmp/aegis-stress-lHjVmf/proj/docs/NOTE2.md
+/tmp/aegis-stress-lHjVmf/proj/docs/C_C.md
+/tmp/aegis-stress-lHjVmf/proj/docs/C_B.md
+/tmp/aegis-stress-lHjVmf/proj/docs/wiki/Architecture.md
+/tmp/aegis-stress-lHjVmf/proj/docs/wiki/Commands.md
+/tmp/aegis-stress-lHjVmf/proj/docs/wiki/Modules.md
+/tmp/aegis-stress-lHjVmf/proj/docs/wiki/Conventions.md
+/tmp/aegis-stress-lHjVmf/proj/docs/wiki/Home.md
+/tmp/aegis-stress-lHjVmf/proj/docs/wiki/_Sidebar.md
+/tmp/aegis-stress-lHjVmf/proj/docs/NOTE1.md
+/tmp/aegis-stress-lHjVmf/proj/docs/NOTE3.md
+/tmp/aegis-stress-lHjVmf/proj/.aegis/reviews/diff-20260712_051458.md
+/tmp/aegis-stress-lHjVmf/proj/.aegis/LESSONS.jsonl
+/tmp/aegis-stress-lHjVmf/proj/.aegis/dreams/2026-07-12_051445.md
+/tmp/aegis-stress-lHjVmf/proj/.aegis/dreams/2026-07-12_051445.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/SKILLS/proj-minimal-rust-conventions.md
+/tmp/aegis-stress-lHjVmf/proj/.aegis/SKILLS/rust-trailing-junk-heal.md
+/tmp/aegis-stress-lHjVmf/proj/.aegis/checkpoints/20260712_051525.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/checkpoints/20260712_051525.status.txt
+/tmp/aegis-stress-lHjVmf/proj/.aegis/checkpoints/20260712_051422.status.txt
+/tmp/aegis-stress-lHjVmf/proj/.aegis/checkpoints/20260712_051422.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/nexus/neural-summary.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/metrics.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/FAILURES.jsonl
+/tmp/aegis-stress-lHjVmf/proj/.aegis/readiness/report.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/0cd3e2a2-e757-4bf0-859b-23783f30d575.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/b8eefed0-c982-419d-a1c8-9f99b3ad2b65.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/811849a2-2ccb-426d-b40e-84e625d2db3b.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/b669e0c1-cf85-4a79-8bd0-df0e026df83e.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/2b540fb0-0cf8-49eb-bd40-b8d858566e4a.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/8e25097f-7681-469a-9872-5890595a3975.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/bff3e9b7-8d8d-4f28-805e-fc6bb908f2ed.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/22292cb9-1258-4c6a-a202-9e02f9cc80d8.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/4eb27c43-26a4-456b-b16c-5974932823fc.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/55f1dcc4-2484-427f-8244-5938c2c24ca3.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/1f92a81f-e850-45cd-994e-0ac8e8ade96a.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/6e7125ca-f7df-4a3f-b433-9ae49eb67914.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/9c29fabd-282a-4525-be89-d518057d2e7e.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/runs/674a53a3-e68a-4654-9829-ef77b54a3c4d.json
+/tmp/aegis-stress-lHjVmf/proj/.aegis/MEMORY.md
 
 metrics: {
   "run_count": 23,
-  "heal_attempts": 2,
-  "heal_successes": 2,
-  "last_run_id": "a9f27ba8-d95d-4aeb-a77e-c5f18621edb0",
-  "last_run_at": "2026-07-12T04:33:13.977636996+00:00"
+  "heal_attempts": 3,
+  "heal_successes": 0,
+  "last_run_id": "811849a2-2ccb-426d-b40e-84e625d2db3b",
+  "last_run_at": "2026-07-12T05:16:01.049949815+00:00"
 }
 ```
 
 ## Log
 
-`/tmp/aegis-stress-ZYkwLG/stress.log`
+`/tmp/aegis-stress-lHjVmf/stress.log`
 
 ## Interpretation
 

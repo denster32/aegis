@@ -1,6 +1,6 @@
 # Release 0.7.0
 
-**Status:** production-ready (sandbox + thick tests + CI)  
+**Status:** production-ready (Nexus + sandbox + thick tests + CI)  
 **Date:** 2026-07-12  
 **Tag:** `v0.7.0`
 
@@ -11,6 +11,7 @@ Sovereign Grok-native coding agent in Rust:
 - OAuth via `~/.grok/auth.json`
 - Agent tools + Missions + project learning
 - Platform: dream, readiness, factory, wiki, QA, review, automations
+- **Nexus:** evolve · spore · compress · hardware · capability map
 - Monochrome SpaceX / xAI CLI and brand
 
 ## Install
@@ -73,9 +74,9 @@ re-run via **Actions → CI → Run workflow** once runners are available.
 
 ## Not in scope
 
-- Multi-tenant sandboxing
+- OS multi-tenant isolation (seccomp/containers) beyond tool-layer `--sandbox`
 - Guaranteed GitHub-hosted runner availability (private-repo quota is infra, not workflow config)
-- Large unit-test expansion (stress harness is primary)
+- FPGA/TPM drivers, Nostr P2P, on-device local LLMs
 
 ## Maintain
 

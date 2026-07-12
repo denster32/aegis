@@ -1,48 +1,46 @@
 # Architecture
 
-Aegis is a **Cargo workspace** with a thin CLI and a library core.
+Aegis is a **Cargo workspace**: thin CLI + library crates. Nexus extends the core with evolution, spores, and hardware probes.
 
 ```
-aegis → core (agent, learn, missions)
+aegis → core (agent, learn, missions, platform)
      → auth · xai · tools · memory · swarm · mcp · store · context
+     → evolution · spore · hardware
 ```
 
 ## Crates
 
 | Crate | Role |
 |-------|------|
-| `crates/aegis` | CLI entrypoint (`aegis`, flags, subcommands) |
-| `crates/aegis-core` | Library: agent loop, tools, learning, Missions, platform modules |
+| `aegis` | CLI entrypoint |
+| `aegis-core` | Agent loop, learning, Missions, dream/factory/QA/wiki/UI |
+| `aegis-auth` | Grok OAuth |
+| `aegis-xai` | Responses API |
+| `aegis-tools` | Local tools + sandbox membrane + capability map |
+| `aegis-memory` | Project memory + neural summary |
+| `aegis-swarm` | DAG + Mission Control |
+| `aegis-evolution` | Mutation genes + fitness |
+| `aegis-spore` | Viral pack / vaccinate |
+| `aegis-hardware` | Host probe + throttle policy |
+| `aegis-context` | Workspace pack |
+| `aegis-store` | SQLite sessions |
+| `aegis-mcp` | Optional MCP |
 
 ## Data flow
 
-1. **CLI** parses flags (`-p`, `--yolo`, `--effort`, `--cwd`, …) and routes to core.
+1. **CLI** parses flags (`-p`, `--yolo`, `--sandbox`, `--effort`, …) and routes to core / Nexus.
 2. **Auth** reuses Grok OAuth (`grok login` / `~/.grok/auth.json`).
 3. **Agent** calls **xAI** with tools (read/write/edit, bash, glob, grep, git, web, memory).
-4. **Learning** updates `.aegis/` mid-run (self-heal) and after-run (reflect).
+4. **Learning** updates `.aegis/` mid-run (self-heal) and after-run (reflect / compress).
 5. **Missions / Swarm** plan → Mission Control → DAG workers → validate → reflect.
+6. **Nexus** mutates (evolve), packs spores, probes host, injects neural summary.
 
 ## Platform modules
 
-Sibling modules under `crates/aegis-core/src/`:
-
-- `dream` — nightly deep self-improve
-- `factory` — SDLC coverage map
-- `qa` — automated QA
-- `readiness_v2` — L1–L5 readiness scoring
-- `review` — PR code review hooks
-- `wiki` — AutoWiki-style docs
-- `automations` — scheduled/event automations
+Under `crates/aegis-core/src/`: dream, factory, qa, readiness_v2, review, wiki, automations, ui.
 
 ## Project memory
 
-Per-project state lives in `.aegis/`:
+Per-project state in `.aegis/` (MEMORY, LESSONS, FAILURES, SKILLS, missions, dreams, nexus/).
 
-- `MEMORY.md` — stack, commands, conventions
-- `LESSONS.jsonl` / `FAILURES.jsonl` — durable lessons & heal patterns
-- `SKILLS/` — playbooks Missions reuse
-
-## Related
-
-- [Home](Home.md) · [Modules](Modules.md) · [Commands](Commands.md) · [Conventions](Conventions.md)
-- Upstream docs: `docs/architecture.md`, `docs/learning.md`, `docs/missions.md`
+See [docs/architecture.md](../architecture.md) · [docs/nexus.md](../nexus.md).
