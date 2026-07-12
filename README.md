@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.5.1-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="version"/>
+  <img src="https://img.shields.io/badge/version-0.5.2-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="version"/>
   <img src="https://img.shields.io/badge/rust-1.96+-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="rust"/>
   <img src="https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="license"/>
   <img src="https://img.shields.io/badge/ui-monochrome-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="ui"/>
@@ -90,7 +90,7 @@ aegis missions run <id>
 SpaceX / xAI monochrome: white primary · dim secondary · thin rules · geometric marks `● · ▸ ×`
 
 ```
-AEGIS  0.5.1
+AEGIS  0.5.2
 ────────────────────────────────────────────────────────
   session         a1b2c3d4
   model           grok-4.5

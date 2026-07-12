@@ -29,4 +29,4 @@ aegis auth status
 aegis -p "Reply with exactly: pong"
 ```
 
-Version target: **0.5.1+**.
+Version target: **0.5.2**.

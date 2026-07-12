@@ -8,8 +8,8 @@
 **/*.pem
 **/id_rsa
 **/credentials.json
-# local project learning / runtime (dogfooding may force-add intentional seeds)
 **/.aegis/auth.json
+# local runtime / generated artifacts (not seeds)
 **/.aegis/runs/
 **/.aegis/dream.lock
 **/.aegis/qa/evidence/
@@ -20,6 +20,9 @@
 **/.aegis/dreams/
 **/.aegis/readiness/
 **/.aegis/factory/
+# intentionally tracked seeds (do not ignore):
+#   .aegis/skills/  .aegis/SKILLS/  .aegis/automations/
+# dogfooding may force-add MEMORY/LESSONS/FAILURES when useful
 *.db
 *.db-*
 .DS_Store

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.2 — 2026-07-12
+
+### Final release polish
+
+- Monochrome SpaceX / xAI brand kit (logo, banner, learning loop, mission control, dream)
+- Regenerated grayscale PNG/OG assets; removed legacy colorful/orphan media
+- CLI visual system finalized (`aegis_core::ui`)
+- README centered mark + monochrome badges
+- Project audit + security hardening carried from 0.5.1
+- Screenshots: brand kit, CLI surfaces, README preview
+
+### Hygiene
+
+- Confirmed no leftover cyan/colorful CLI brand refs or dead silence stubs
+- Confirmed `failures_tests_extra` removed; factory Document stage sees `docs/wiki`
+- `.gitignore`: secrets/runtime ignored; skills/automations seeds remain trackable
+
+### Docs
+
+- [docs/features.md](docs/features.md) · [docs/audit-2026-07-12.md](docs/audit-2026-07-12.md) · [docs/RELEASE.md](docs/RELEASE.md)
+
 ## 0.5.1 — 2026-07-12
 
 ### Fixed

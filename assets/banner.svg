@@ -24,7 +24,7 @@
   <!-- right meta -->
   <text x="1120" y="148" text-anchor="end"
         font-family="ui-monospace,SFMono-Regular,Menlo,monospace"
-        font-size="13" fill="#ffffff" fill-opacity="0.35">v0.5.1</text>
+        font-size="13" fill="#ffffff" fill-opacity="0.35">v0.5.2</text>
   <text x="1120" y="172" text-anchor="end"
         font-family="ui-monospace,SFMono-Regular,Menlo,monospace"
         font-size="13" fill="#ffffff" fill-opacity="0.25">RUST · XAI</text>

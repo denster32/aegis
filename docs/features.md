@@ -1,6 +1,6 @@
 # Feature matrix
 
-Verified against CLI + crates as of **0.5.1**.
+Verified against CLI + crates as of **0.5.2**.
 
 ## Agent
 
