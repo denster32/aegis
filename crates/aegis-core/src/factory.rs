@@ -31,7 +31,12 @@ pub fn factory_status(root: &Path) -> FactoryStatus {
         StageHealth {
             name: "Triage".into(),
             healthy: has_auto("triage") || has_wf("triage"),
-            coverage: if has_auto("triage") { "automation" } else { "none" }.into(),
+            coverage: if has_auto("triage") {
+                "automation"
+            } else {
+                "none"
+            }
+            .into(),
             detail: "Issue intake / routing automations".into(),
         },
         StageHealth {
@@ -56,7 +61,12 @@ pub fn factory_status(root: &Path) -> FactoryStatus {
         StageHealth {
             name: "Release".into(),
             healthy: has_wf("release") || root.join("CHANGELOG.md").exists(),
-            coverage: if has_wf("release") { "workflow" } else { "docs" }.into(),
+            coverage: if has_wf("release") {
+                "workflow"
+            } else {
+                "docs"
+            }
+            .into(),
             detail: "Release workflows / changelog".into(),
         },
         StageHealth {

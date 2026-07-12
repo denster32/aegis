@@ -40,10 +40,7 @@ pub async fn device_login(paths: &AuthPaths, write_aegis: bool) -> Result<AuthEn
     let dc_url = format!("{issuer}/oauth2/device/code");
     let resp = http
         .post(&dc_url)
-        .form(&[
-            ("client_id", client_id),
-            ("scope", SCOPES),
-        ])
+        .form(&[("client_id", client_id), ("scope", SCOPES)])
         .send()
         .await
         .context("device code request")?;
@@ -160,17 +157,9 @@ struct UserInfo {
     family_name: Option<String>,
 }
 
-async fn fetch_userinfo(
-    http: &reqwest::Client,
-    issuer: &str,
-    token: &str,
-) -> Result<UserInfo> {
+async fn fetch_userinfo(http: &reqwest::Client, issuer: &str, token: &str) -> Result<UserInfo> {
     let url = format!("{}/oauth2/userinfo", issuer.trim_end_matches('/'));
-    let resp = http
-        .get(url)
-        .bearer_auth(token)
-        .send()
-        .await?;
+    let resp = http.get(url).bearer_auth(token).send().await?;
     if !resp.status().is_success() {
         bail!("userinfo failed");
     }

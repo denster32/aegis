@@ -1,9 +1,8 @@
 use crate::config::AegisConfig;
 use crate::learn::LearnRuntime;
 use crate::prompts;
-use aegis_context;
 use aegis_store::Store;
-use aegis_tools::{PermissionMode, ToolContext, ToolRegistry, TodoStore};
+use aegis_tools::{PermissionMode, TodoStore, ToolContext, ToolRegistry};
 use aegis_xai::{
     server_tools, system_msg, user_msg, CreateResponseRequest, FunctionCallOutput, InputItem,
     ReasoningConfig, ResponsesClient, TextConfig, TextFormat, ToolChoice, ToolDef, ToolSpec,
@@ -14,6 +13,11 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tracing::{debug, info};
+
+/// Print/stream callback for interactive agent output.
+pub type PrintFn = Arc<dyn Fn(&str) + Send + Sync>;
+/// Interactive ask callback (permissions / ask_user).
+pub type AskFn = Arc<dyn Fn(&str) -> String + Send + Sync>;
 
 struct StoreTodoAdapter {
     store: Arc<Store>,
@@ -37,8 +41,8 @@ pub struct AgentLoop {
     pub session_id: String,
     pub previous_response_id: Option<String>,
     pub permission: PermissionMode,
-    pub print_fn: Option<Arc<dyn Fn(&str) + Send + Sync>>,
-    pub ask_fn: Option<Arc<dyn Fn(&str) -> String + Send + Sync>>,
+    pub print_fn: Option<PrintFn>,
+    pub ask_fn: Option<AskFn>,
     /// Override model for this loop (swarm workers).
     pub model_override: Option<String>,
     pub system_override: Option<String>,
@@ -124,15 +128,11 @@ impl AgentLoop {
         } else {
             self.config.tool_reasoning_effort.as_str()
         };
-        ReasoningConfig::from_str(effort)
+        ReasoningConfig::parse_effort(effort)
     }
 
     fn tool_context(&self) -> ToolContext {
-        let mut ctx = ToolContext::new(
-            self.cwd.clone(),
-            self.session_id.clone(),
-            self.permission,
-        );
+        let mut ctx = ToolContext::new(self.cwd.clone(), self.session_id.clone(), self.permission);
         ctx.ask = self.ask_fn.clone();
         ctx.todo_store = Some(Arc::new(StoreTodoAdapter {
             store: self.store.clone(),
@@ -177,7 +177,8 @@ impl AgentLoop {
 
         let mut final_text = String::new();
         let mut steps = 0usize;
-        let mut let _ = had_tools_last; had_tools_last = false;
+        // After a tool-bearing step, lower reasoning for subsequent tool-loop turns.
+        let mut had_tools_last = false;
 
         loop {
             steps += 1;
@@ -270,14 +271,14 @@ impl AgentLoop {
                 final_text = text;
             }
 
-            // Server-side tools (web_search, code_execution, …) complete on xAI — only client function_calls need local exec
+            // Server-side tools (web_search, code_execution, …) complete on xAI —
+            // only client function_calls need local exec.
             let calls = resp.function_calls();
             if calls.is_empty() {
                 if !final_text.is_empty() {
                     self.store
                         .append_message(&self.session_id, "assistant", &final_text)?;
                 }
-                let _ = had_tools_last; had_tools_last = false;
                 break;
             }
             had_tools_last = true;
@@ -310,13 +311,14 @@ impl AgentLoop {
                     let _ = crate::hooks::run_hook(
                         &cwd_for_hooks,
                         "pre-tool",
-                        &[("AEGIS_TOOL", name.as_str()), ("AEGIS_TOOL_ARGS", args_str.as_str())],
+                        &[
+                            ("AEGIS_TOOL", name.as_str()),
+                            ("AEGIS_TOOL_ARGS", args_str.as_str()),
+                        ],
                     );
 
-                    let args: serde_json::Value =
-                        serde_json::from_str(&args_str).unwrap_or_else(|_| {
-                            serde_json::json!({ "_raw": args_str })
-                        });
+                    let args: serde_json::Value = serde_json::from_str(&args_str)
+                        .unwrap_or_else(|_| serde_json::json!({ "_raw": args_str }));
 
                     let result = match tools.get(&name) {
                         Some(tool) => tool.call(args, &ctx).await,
@@ -330,7 +332,11 @@ impl AgentLoop {
                         format!("ERROR: {}", result.output)
                     };
                     let truncated = if out.len() > 80_000 {
-                        format!("{}…\n[truncated {} chars]", &out[..80_000], out.len() - 80_000)
+                        format!(
+                            "{}…\n[truncated {} chars]",
+                            &out[..80_000],
+                            out.len() - 80_000
+                        )
                     } else {
                         out
                     };
@@ -338,10 +344,7 @@ impl AgentLoop {
                     let _ = crate::hooks::run_hook(
                         &cwd_for_hooks,
                         "post-tool",
-                        &[
-                            ("AEGIS_TOOL", name.as_str()),
-                            ("AEGIS_TOOL_STATUS", status),
-                        ],
+                        &[("AEGIS_TOOL", name.as_str()), ("AEGIS_TOOL_STATUS", status)],
                     );
                     (call_id, name, truncated, result.ok)
                 });
@@ -455,13 +458,8 @@ impl AgentLoop {
         }
 
         // Cache structured pure-LLM calls
-        let cache_key = Store::cache_key(&[
-            self.model(),
-            system,
-            user,
-            schema_name,
-            &schema.to_string(),
-        ]);
+        let cache_key =
+            Store::cache_key(&[self.model(), system, user, schema_name, &schema.to_string()]);
         if let Ok(Some(hit)) = self.store.cache_get(&cache_key) {
             debug!("structured_json cache hit");
             return Ok(hit);

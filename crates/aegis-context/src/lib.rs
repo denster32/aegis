@@ -25,12 +25,7 @@ pub fn pack_workspace_with_memory(cwd: &Path, include_memory: bool) -> String {
         parts.push(format!("## File tree (capped)\n{tree}"));
     }
 
-    for name in [
-        "AGENTS.md",
-        "CLAUDE.md",
-        ".aegis/rules.md",
-        "README.md",
-    ] {
+    for name in ["AGENTS.md", "CLAUDE.md", ".aegis/rules.md", "README.md"] {
         let path = cwd.join(name);
         if let Ok(content) = std::fs::read_to_string(&path) {
             let clipped = clip(&content, MAX_RULE_CHARS);

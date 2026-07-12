@@ -24,11 +24,7 @@ impl Default for MissionOptions {
 }
 
 /// Full mission: plan DAG → parallel workers → validate.
-pub async fn run_mission(
-    mut boss: AgentLoop,
-    goal: &str,
-    opts: MissionOptions,
-) -> Result<String> {
+pub async fn run_mission(mut boss: AgentLoop, goal: &str, opts: MissionOptions) -> Result<String> {
     println!(
         "{} planning mission DAG with {}…",
         style("◆").magenta(),
@@ -75,11 +71,9 @@ pub async fn run_mission(
     }
 
     let graph_str = serde_json::to_string_pretty(&graph)?;
-    let mission_id = boss.store.create_mission(
-        Some(&boss.session_id),
-        goal,
-        &graph_str,
-    )?;
+    let mission_id = boss
+        .store
+        .create_mission(Some(&boss.session_id), goal, &graph_str)?;
     info!(%mission_id, "mission created");
 
     // Shared pieces for workers

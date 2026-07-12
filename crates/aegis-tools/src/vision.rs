@@ -54,10 +54,7 @@ impl Tool for VisionDescribeTool {
 }
 
 /// Encode image as data URL and call Responses API with image input.
-pub async fn describe_image_file(
-    path: &std::path::Path,
-    question: &str,
-) -> anyhow::Result<String> {
+pub async fn describe_image_file(path: &std::path::Path, question: &str) -> anyhow::Result<String> {
     let bytes = fs::read(path)?;
     if bytes.len() > 15_000_000 {
         anyhow::bail!("image too large");
@@ -106,7 +103,10 @@ pub async fn describe_image_file(
     let text = resp.text().await?;
     if !status.is_success() {
         // fallback: try chat completions style
-        anyhow::bail!("vision API {status}: {}", text.chars().take(400).collect::<String>());
+        anyhow::bail!(
+            "vision API {status}: {}",
+            text.chars().take(400).collect::<String>()
+        );
     }
     // extract output_text
     if let Ok(v) = serde_json::from_str::<serde_json::Value>(&text) {
@@ -132,7 +132,8 @@ pub async fn describe_image_file(
 }
 
 fn resolve_bearer() -> anyhow::Result<String> {
-    if let Ok(t) = std::env::var("AEGIS_ACCESS_TOKEN").or_else(|_| std::env::var("XAI_ACCESS_TOKEN"))
+    if let Ok(t) =
+        std::env::var("AEGIS_ACCESS_TOKEN").or_else(|_| std::env::var("XAI_ACCESS_TOKEN"))
     {
         if !t.is_empty() {
             return Ok(t);
@@ -181,10 +182,7 @@ impl Tool for ScreenshotTool {
     }
 
     async fn call(&self, args: Value, ctx: &ToolContext) -> ToolResult {
-        let name = args
-            .get("name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("shot");
+        let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("shot");
         let dir = ctx.cwd.join(".aegis/screenshots");
         let _ = fs::create_dir_all(&dir);
         let path = dir.join(format!("{name}.png"));
@@ -205,7 +203,11 @@ impl Tool for ScreenshotTool {
         ];
         for c in cmds {
             let (bin, args) = c.split_first().unwrap();
-            if Command::new(bin).args(args).status().map(|s| s.success()).unwrap_or(false)
+            if Command::new(bin)
+                .args(args)
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false)
                 && path.exists()
             {
                 return ToolResult::ok(path.display().to_string());

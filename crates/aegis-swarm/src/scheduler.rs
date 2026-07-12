@@ -7,7 +7,11 @@ use tracing::info;
 
 /// Callback type for executing a single task node.
 pub type TaskRunner = Arc<
-    dyn Fn(TaskNode, String /*mission_id*/) -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<String>> + Send>>
+    dyn Fn(
+            TaskNode,
+            String, /*mission_id*/
+        )
+            -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<String>> + Send>>
         + Send
         + Sync,
 >;
@@ -32,7 +36,12 @@ impl SwarmScheduler {
     }
 
     /// Persist graph tasks to the blackboard.
-    pub fn seed_tasks(&self, store: &Store, mission_id: &str, graph: &MissionGraph) -> anyhow::Result<()> {
+    pub fn seed_tasks(
+        &self,
+        store: &Store,
+        mission_id: &str,
+        graph: &MissionGraph,
+    ) -> anyhow::Result<()> {
         for t in &graph.tasks {
             store.upsert_task(&TaskRow {
                 id: t.id.clone(),
@@ -168,7 +177,11 @@ impl SwarmScheduler {
         let any_fail = tasks.iter().any(|t| t.status == "failed");
         store.update_mission_status(
             mission_id,
-            if any_fail { "completed_with_errors" } else { "completed" },
+            if any_fail {
+                "completed_with_errors"
+            } else {
+                "completed"
+            },
         )?;
         if any_fail && self.fail_fast {
             anyhow::bail!("mission completed with failures");

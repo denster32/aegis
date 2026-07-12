@@ -82,21 +82,14 @@ async fn run_git(cwd: &std::path::Path, args: &[&str]) -> ToolResult {
         Ok(o) => {
             let mut s = String::from_utf8_lossy(&o.stdout).to_string();
             if !o.stderr.is_empty() {
-                s.push_str(&format!(
-                    "\n{}",
-                    String::from_utf8_lossy(&o.stderr)
-                ));
+                s.push_str(&format!("\n{}", String::from_utf8_lossy(&o.stderr)));
             }
             if s.len() > 100_000 {
                 s.truncate(100_000);
                 s.push_str("\n…[truncated]");
             }
             if o.status.success() {
-                ToolResult::ok(if s.is_empty() {
-                    "(clean)".into()
-                } else {
-                    s
-                })
+                ToolResult::ok(if s.is_empty() { "(clean)".into() } else { s })
             } else {
                 ToolResult::err(s)
             }

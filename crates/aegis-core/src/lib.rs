@@ -18,7 +18,9 @@ mod review;
 mod wiki;
 
 pub use agent::*;
-pub use checkpoint::{create as checkpoint_create, list as checkpoint_list, restore as checkpoint_restore, Checkpoint};
+pub use checkpoint::{
+    create as checkpoint_create, list as checkpoint_list, restore as checkpoint_restore, Checkpoint,
+};
 pub use config::*;
 pub use dream::{install_dream_cron, run_dream, DreamJournal, DreamOptions};
 pub use factory::{factory_status, format_factory, FactoryStatus};

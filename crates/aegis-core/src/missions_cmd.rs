@@ -3,8 +3,8 @@
 use crate::agent::AgentLoop;
 use crate::prompts;
 use aegis_swarm::{
-    append_progress, assess_readiness, load_state, save_state, FeatureStatus, MissionPlan,
-    MissionStatus, MissionGraph, TaskNode,
+    append_progress, assess_readiness, load_state, save_state, FeatureStatus, MissionGraph,
+    MissionPlan, MissionStatus, TaskNode,
 };
 use anyhow::{Context, Result};
 use chrono::Utc;
@@ -12,11 +12,7 @@ use console::style;
 use std::sync::Arc;
 
 /// Collaborative / one-shot mission plan generation.
-pub async fn missions_new(
-    agent: &mut AgentLoop,
-    goal: &str,
-    oneshot: bool,
-) -> Result<MissionPlan> {
+pub async fn missions_new(agent: &mut AgentLoop, goal: &str, oneshot: bool) -> Result<MissionPlan> {
     let user = if oneshot {
         format!(
             "Create a MissionPlan for this goal. Decompose into milestones and features with dependencies and skill_hints.\n\nGoal:\n{goal}"
@@ -38,8 +34,8 @@ pub async fn missions_new(
         .await
         .context("mission plan generation")?;
 
-    let mut raw: serde_json::Value = serde_json::from_str(&json)
-        .with_context(|| format!("parse mission plan: {json}"))?;
+    let mut raw: serde_json::Value =
+        serde_json::from_str(&json).with_context(|| format!("parse mission plan: {json}"))?;
     // Ensure id/status timestamps
     if raw.get("id").is_none() {
         raw["id"] = serde_json::json!(uuid::Uuid::new_v4().to_string());
@@ -214,13 +210,14 @@ pub async fn missions_run(mut agent: AgentLoop, mission_id: &str) -> Result<Stri
         }
     }
 
-    plan.status = if plan.milestones.iter().all(|m| m.status == FeatureStatus::Done)
-        || plan.milestones.is_empty()
-    {
-        MissionStatus::Completed
-    } else {
-        MissionStatus::Completed // still complete features; milestone soft
-    };
+    // Soft complete: feature loop finished; milestone blocking is advisory for now.
+    let _milestones_ok = plan.milestones.is_empty()
+        || plan
+            .milestones
+            .iter()
+            .all(|m| m.status == FeatureStatus::Done);
+    let _ = _milestones_ok;
+    plan.status = MissionStatus::Completed;
     plan.updated_at = Utc::now().to_rfc3339();
     plan.save(&agent.cwd)?;
 

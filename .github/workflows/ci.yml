@@ -22,4 +22,3 @@ jobs:
         run: cargo test --workspace
       - name: clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
-        continue-on-error: true

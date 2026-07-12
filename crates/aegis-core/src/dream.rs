@@ -102,7 +102,11 @@ pub async fn run_dream(
         // stale > 2h
         if let Ok(meta) = fs::metadata(&lock) {
             if let Ok(modified) = meta.modified() {
-                if modified.elapsed().map(|d| d.as_secs() < 7200).unwrap_or(false) {
+                if modified
+                    .elapsed()
+                    .map(|d| d.as_secs() < 7200)
+                    .unwrap_or(false)
+                {
                     bail!("dream already running (lock: {})", lock.display());
                 }
             }
@@ -149,7 +153,11 @@ async fn run_dream_inner(
                 summary: l.summary.clone(),
                 detail: l.detail.clone(),
                 tags: vec!["dream".into()],
-                confidence: if l.confidence == 0.0 { 0.7 } else { l.confidence },
+                confidence: if l.confidence == 0.0 {
+                    0.7
+                } else {
+                    l.confidence
+                },
                 hits: 1,
             })?;
         }
@@ -233,15 +241,25 @@ fn build_snapshot(
     memory: &ProjectMemory,
 ) -> Result<String> {
     let mut s = String::new();
-    s.push_str(&format!("# Dream snapshot\nProject: {}\n\n", root.display()));
+    s.push_str(&format!(
+        "# Dream snapshot\nProject: {}\n\n",
+        root.display()
+    ));
     s.push_str("## Readiness\n");
     s.push_str(&format_report(readiness));
     s.push_str("\n## Git\n");
     s.push_str(&run_capture(root, &["git", "log", "-5", "--oneline"]).unwrap_or_default());
-    s.push_str("\n");
+    s.push('\n');
     s.push_str(&run_capture(root, &["git", "status", "-sb"]).unwrap_or_default());
     s.push_str("\n## Memory\n");
-    s.push_str(&memory.read_memory_md().unwrap_or_default().chars().take(4000).collect::<String>());
+    s.push_str(
+        &memory
+            .read_memory_md()
+            .unwrap_or_default()
+            .chars()
+            .take(4000)
+            .collect::<String>(),
+    );
     s.push_str("\n## Lessons (recent)\n");
     if let Ok(lessons) = memory.load_lessons() {
         for l in lessons.iter().rev().take(15) {
@@ -262,7 +280,11 @@ fn build_snapshot(
     Ok(s)
 }
 
-async fn dream_llm(client: &ResponsesClient, model: &str, snapshot: &str) -> Result<DreamLlmOutput> {
+async fn dream_llm(
+    client: &ResponsesClient,
+    model: &str,
+    snapshot: &str,
+) -> Result<DreamLlmOutput> {
     let schema = serde_json::json!({
         "type": "object",
         "properties": {
@@ -375,7 +397,11 @@ fn render_journal_md(j: &DreamJournal) -> String {
 
 fn run_capture(cwd: &Path, args: &[&str]) -> Option<String> {
     let (cmd, rest) = args.split_first()?;
-    let out = Command::new(cmd).args(rest).current_dir(cwd).output().ok()?;
+    let out = Command::new(cmd)
+        .args(rest)
+        .current_dir(cwd)
+        .output()
+        .ok()?;
     if !out.status.success() && out.stdout.is_empty() {
         return None;
     }
@@ -447,7 +473,10 @@ pub fn install_dream_cron(project_root: &Path, hour: u8) -> Result<String> {
             "name = \"nightly-dream\"\ntrigger = \"schedule\"\ncron = \"0 {hour} * * *\"\ncommand = \"dream\"\nargs = [\"--apply\"]\nenabled = true\nstage = \"monitor\"\n"
         ),
     )?;
-    Ok(format!("Installed cron: 0 {hour} * * * {}", script.display()))
+    Ok(format!(
+        "Installed cron: 0 {hour} * * * {}",
+        script.display()
+    ))
 }
 
 pub fn which_aegis_pub() -> PathBuf {

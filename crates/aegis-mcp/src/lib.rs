@@ -44,7 +44,9 @@ impl McpSession {
         for (k, v) in &cfg.env {
             cmd.env(k, v);
         }
-        let mut child = cmd.spawn().with_context(|| format!("spawn MCP {}", cfg.name))?;
+        let mut child = cmd
+            .spawn()
+            .with_context(|| format!("spawn MCP {}", cfg.name))?;
         let stdin = child.stdin.take().context("mcp stdin")?;
         let stdout = child.stdout.take().context("mcp stdout")?;
         let mut session = Self {

@@ -58,8 +58,8 @@ impl AuthProvider {
         let paths = auth_paths();
 
         // 1. Explicit access token
-        if let Ok(t) = std::env::var("AEGIS_ACCESS_TOKEN")
-            .or_else(|_| std::env::var("XAI_ACCESS_TOKEN"))
+        if let Ok(t) =
+            std::env::var("AEGIS_ACCESS_TOKEN").or_else(|_| std::env::var("XAI_ACCESS_TOKEN"))
         {
             if !t.is_empty() {
                 return Ok(Arc::new(Self {
@@ -171,10 +171,7 @@ impl AuthProvider {
             expires_at: g.cred.expires_at.clone(),
             team_id: g.entry.as_ref().and_then(|e| e.team_id.clone()),
             auth_mode: g.entry.as_ref().and_then(|e| e.auth_mode.clone()),
-            path: g
-                .entry_path
-                .as_ref()
-                .map(|p| p.display().to_string()),
+            path: g.entry_path.as_ref().map(|p| p.display().to_string()),
             needs_refresh: needs,
         }
     }

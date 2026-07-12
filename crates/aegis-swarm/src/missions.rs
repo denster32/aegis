@@ -202,12 +202,19 @@ impl MissionPlan {
         fs::write(&path, serde_json::to_string_pretty(self)?)?;
         let state = MissionState {
             mission_id: self.id.clone(),
-            current_milestone: self.milestones.iter().min_by_key(|m| m.order).map(|m| m.id.clone()),
+            current_milestone: self
+                .milestones
+                .iter()
+                .min_by_key(|m| m.order)
+                .map(|m| m.id.clone()),
             current_feature: None,
             completed_features: vec![],
             blocked_reason: None,
         };
-        fs::write(dir.join("state.json"), serde_json::to_string_pretty(&state)?)?;
+        fs::write(
+            dir.join("state.json"),
+            serde_json::to_string_pretty(&state)?,
+        )?;
         if !dir.join("progress.jsonl").exists() {
             fs::write(dir.join("progress.jsonl"), "")?;
         }
@@ -247,7 +254,8 @@ impl MissionPlan {
             let e = e?;
             let plan_path = e.path().join("plan.json");
             if plan_path.exists() {
-                if let Ok(p) = serde_json::from_str::<MissionPlan>(&fs::read_to_string(plan_path)?) {
+                if let Ok(p) = serde_json::from_str::<MissionPlan>(&fs::read_to_string(plan_path)?)
+                {
                     out.push(p);
                 }
             }
@@ -259,16 +267,22 @@ impl MissionPlan {
     /// ASCII Mission Control board.
     pub fn control_board(&self, state: &MissionState) -> String {
         let mut s = String::new();
-        s.push_str(&format!("╔══════════════════════════════════════════════╗\n"));
-        s.push_str(&format!("║  MISSION CONTROL  {}  ║\n", &self.id[..8.min(self.id.len())]));
-        s.push_str(&format!("╠══════════════════════════════════════════════╣\n"));
-        s.push_str(&format!("║ status: {:<36} ║\n", format!("{:?}", self.status)));
+        s.push_str("╔══════════════════════════════════════════════╗\n");
+        s.push_str(&format!(
+            "║  MISSION CONTROL  {}  ║\n",
+            &self.id[..8.min(self.id.len())]
+        ));
+        s.push_str("╠══════════════════════════════════════════════╣\n");
+        s.push_str(&format!(
+            "║ status: {:<36} ║\n",
+            format!("{:?}", self.status)
+        ));
         s.push_str(&format!("║ goal: {:<38} ║\n", truncate(&self.goal, 38)));
         s.push_str(&format!(
             "║ milestone: {:<33} ║\n",
             state.current_milestone.as_deref().unwrap_or("-")
         ));
-        s.push_str(&format!("╠══════════════════════════════════════════════╣\n"));
+        s.push_str("╠══════════════════════════════════════════════╣\n");
         s.push_str("║ MILESTONES                                   ║\n");
         let mut miles = self.milestones.clone();
         miles.sort_by_key(|m| m.order);
@@ -285,7 +299,7 @@ impl MissionPlan {
                 truncate(&m.title, 36)
             ));
         }
-        s.push_str(&format!("╠══════════════════════════════════════════════╣\n"));
+        s.push_str("╠══════════════════════════════════════════════╣\n");
         s.push_str("║ FEATURES                                     ║\n");
         for f in &self.features {
             let mark = match f.status {
@@ -302,7 +316,7 @@ impl MissionPlan {
             ));
         }
         if let Some(ref br) = state.blocked_reason {
-            s.push_str(&format!("╠══════════════════════════════════════════════╣\n"));
+            s.push_str("╠══════════════════════════════════════════════╣\n");
             s.push_str(&format!("║ blocked: {:<35} ║\n", truncate(br, 35)));
         }
         s.push_str("╚══════════════════════════════════════════════╝\n");
@@ -344,10 +358,17 @@ pub fn save_state(project_root: &Path, state: &MissionState) -> Result<(), Missi
     Ok(())
 }
 
-pub fn append_progress(project_root: &Path, mission_id: &str, event: serde_json::Value) -> Result<(), MissionError> {
+pub fn append_progress(
+    project_root: &Path,
+    mission_id: &str,
+    event: serde_json::Value,
+) -> Result<(), MissionError> {
     use std::io::Write;
     let path = mission_dir(project_root, mission_id).join("progress.jsonl");
-    let mut f = fs::OpenOptions::new().create(true).append(true).open(path)?;
+    let mut f = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)?;
     writeln!(f, "{}", serde_json::to_string(&event)?)?;
     Ok(())
 }
@@ -391,13 +412,21 @@ pub fn assess_readiness(project_root: &Path) -> ReadinessReport {
     checks.push(ReadinessCheck {
         name: "git_repo".into(),
         passed: has_git,
-        detail: if has_git { "git present".into() } else { "no .git".into() },
+        detail: if has_git {
+            "git present".into()
+        } else {
+            "no .git".into()
+        },
     });
     let has_aegis = project_root.join(".aegis").exists();
     checks.push(ReadinessCheck {
         name: "aegis_dir".into(),
         passed: has_aegis,
-        detail: if has_aegis { ".aegis present".into() } else { "run aegis once to create".into() },
+        detail: if has_aegis {
+            ".aegis present".into()
+        } else {
+            "run aegis once to create".into()
+        },
     });
     let has_tests = project_root.join("tests").exists()
         || project_root.join("Cargo.toml").exists()
@@ -419,7 +448,11 @@ pub fn assess_readiness(project_root: &Path) -> ReadinessReport {
     checks.push(ReadinessCheck {
         name: "ci".into(),
         passed: has_ci,
-        detail: if has_ci { "workflows present".into() } else { "optional CI".into() },
+        detail: if has_ci {
+            "workflows present".into()
+        } else {
+            "optional CI".into()
+        },
     });
 
     let passed = checks.iter().filter(|c| c.passed).count();

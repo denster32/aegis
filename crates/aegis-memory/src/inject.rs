@@ -30,13 +30,11 @@ pub fn inject_memory_block(mem: &ProjectMemory, budget: Option<usize>) -> String
     if let Ok(failures) = mem.load_failures() {
         let mut ranked = failures;
         ranked.sort_by(|a, b| {
-            b.hits
-                .cmp(&a.hits)
-                .then_with(|| {
-                    b.confidence
-                        .partial_cmp(&a.confidence)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                })
+            b.hits.cmp(&a.hits).then_with(|| {
+                b.confidence
+                    .partial_cmp(&a.confidence)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
         });
         ranked.truncate(5);
         if !ranked.is_empty() {

@@ -2,10 +2,11 @@ use aegis_auth::{
     auth_paths, clear_auth_file, device_login, import_grok_to_aegis, AuthProvider, TokenSource,
 };
 use aegis_core::{
-    assess_v2, automations, checkpoint_create, checkpoint_list, checkpoint_restore, factory_status, format_factory, format_readiness_v2, generate_wiki,
-    install_dream_cron, install_qa, install_review_workflow, install_wiki_workflow, missions_new,
-    missions_run, missions_status, readiness_report, review_diff, review_pr, run_dream,
-    run_mission, run_plan, run_qa, AegisConfig, AgentLoop, DreamOptions, Effort, MissionOptions,
+    assess_v2, automations, checkpoint_create, checkpoint_list, checkpoint_restore, factory_status,
+    format_factory, format_readiness_v2, generate_wiki, install_dream_cron, install_qa,
+    install_review_workflow, install_wiki_workflow, missions_new, missions_run, missions_status,
+    readiness_report, review_diff, review_pr, run_dream, run_mission, run_plan, run_qa,
+    AegisConfig, AgentLoop, DreamOptions, Effort, MissionOptions,
 };
 use aegis_memory::ProjectMemory;
 use aegis_store::{AegisPaths, Store};
@@ -34,7 +35,11 @@ impl XaiTokenSource for AuthBridge {
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "aegis", version, about = "Sovereign Grok 4.5 coding agent (Rust)")]
+#[command(
+    name = "aegis",
+    version,
+    about = "Sovereign Grok 4.5 coding agent (Rust)"
+)]
 struct Cli {
     /// One-shot prompt (non-interactive)
     #[arg(short = 'p', long = "print", global = true)]
@@ -197,7 +202,9 @@ enum SessionCmd {
         #[arg(long, default_value_t = 20)]
         limit: usize,
     },
-    Show { id: String },
+    Show {
+        id: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -221,13 +228,9 @@ enum MissionsCmd {
     /// List missions
     List,
     /// Mission Control board
-    Status {
-        id: Option<String>,
-    },
+    Status { id: Option<String> },
     /// Execute an approved mission
-    Run {
-        id: String,
-    },
+    Run { id: String },
 }
 
 #[derive(Subcommand, Debug)]
@@ -249,7 +252,9 @@ enum CheckpointCmd {
         label: String,
     },
     List,
-    Restore { id: String },
+    Restore {
+        id: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -310,7 +315,10 @@ async fn main() -> Result<()> {
             action: AutomationCmd::List,
         }) => {
             let _ = automations::ensure_defaults(&cwd_early);
-            print!("{}", automations::format_list(&automations::list(&cwd_early)?));
+            print!(
+                "{}",
+                automations::format_list(&automations::list(&cwd_early)?)
+            );
             return Ok(());
         }
         Some(Commands::Automation {
@@ -518,16 +526,16 @@ async fn main() -> Result<()> {
     if !cli.no_learn {
         agent = agent.with_learning(true);
     }
-    agent.permission = if config.yolo {
-        PermissionMode::Yolo
-    } else if cli.prompt.is_some()
+    // YOLO for explicit flag, one-shot -p, or non-interactive mission/plan commands.
+    let auto_yolo = config.yolo
+        || cli.prompt.is_some()
         || matches!(
             cli.command,
             Some(Commands::Mission { .. })
                 | Some(Commands::Plan { .. })
                 | Some(Commands::Missions { .. })
-        )
-    {
+        );
+    agent.permission = if auto_yolo {
         PermissionMode::Yolo
     } else {
         PermissionMode::Prompt
@@ -640,22 +648,20 @@ async fn main() -> Result<()> {
                 println!("  [{}] {} — {}", f.severity, f.title, f.detail);
             }
         }
-        Some(Commands::Checkpoint { action }) => {
-            match action {
-                CheckpointCmd::Create { label } => {
-                    let cp = checkpoint_create(&cwd, &label)?;
-                    println!("checkpoint {} (stash={:?})", cp.id, cp.stash_ref);
-                }
-                CheckpointCmd::List => {
-                    for c in checkpoint_list(&cwd)? {
-                        println!("{}  {}  {}", c.id, c.label, c.created_at);
-                    }
-                }
-                CheckpointCmd::Restore { id } => {
-                    println!("{}", checkpoint_restore(&cwd, &id)?);
+        Some(Commands::Checkpoint { action }) => match action {
+            CheckpointCmd::Create { label } => {
+                let cp = checkpoint_create(&cwd, &label)?;
+                println!("checkpoint {} (stash={:?})", cp.id, cp.stash_ref);
+            }
+            CheckpointCmd::List => {
+                for c in checkpoint_list(&cwd)? {
+                    println!("{}  {}  {}", c.id, c.label, c.created_at);
                 }
             }
-        }
+            CheckpointCmd::Restore { id } => {
+                println!("{}", checkpoint_restore(&cwd, &id)?);
+            }
+        },
         Some(Commands::Vision { path, question }) => {
             let p = std::path::PathBuf::from(&path);
             let p = if p.is_absolute() { p } else { cwd.join(p) };
@@ -773,7 +779,11 @@ async fn repl(mut agent: AgentLoop, store: Arc<Store>) -> Result<()> {
                 );
             } else if let Some(goal) = rest.strip_prefix("new ") {
                 match missions_new(&mut agent, goal.trim(), true).await {
-                    Ok(p) => println!("created mission {} — aegis missions run {}", p.id, &p.id[..8]),
+                    Ok(p) => println!(
+                        "created mission {} — aegis missions run {}",
+                        p.id,
+                        &p.id[..8]
+                    ),
                     Err(e) => eprintln!("missions new: {e:#}"),
                 }
             } else {
@@ -857,7 +867,9 @@ async fn repl(mut agent: AgentLoop, store: Arc<Store>) -> Result<()> {
             continue;
         }
         if line.starts_with('/') {
-            eprintln!("unknown command — try /plan /mission /yolo /cost /compact /model /clear /quit");
+            eprintln!(
+                "unknown command — try /plan /mission /yolo /cost /compact /model /clear /quit"
+            );
             continue;
         }
         if let Err(e) = agent.run_turn(line).await {

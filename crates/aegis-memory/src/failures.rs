@@ -33,13 +33,11 @@ pub fn normalize_error(s: &str) -> String {
 }
 
 fn regex_lite_replace_paths(s: &str) -> String {
-    // simple: replace /home/... and /tmp/... segments
+    // simple: replace /home/... and /tmp/... style absolute path tokens
     let mut result = String::new();
     for token in s.split_whitespace() {
         if token.starts_with('/') && token.len() > 8 {
             result.push_str("<path>");
-        } else if token.contains("line ") {
-            result.push_str(token);
         } else {
             result.push_str(token);
         }
@@ -103,4 +101,3 @@ mod tests {
         assert!(find_known_fix(&recs, &fp, 0.95).is_none());
     }
 }
-

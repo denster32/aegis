@@ -1,7 +1,7 @@
 //! Self-heal and end-of-run reflection hooks.
 
 use aegis_memory::{
-    fingerprint, find_known_fix, reflection_json_schema, reflection_system_prompt, FailureRecord,
+    find_known_fix, fingerprint, reflection_json_schema, reflection_system_prompt, FailureRecord,
     Lesson, NewFailure, ProjectMemory, RunReflection,
 };
 use aegis_xai::{

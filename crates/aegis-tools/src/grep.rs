@@ -56,10 +56,7 @@ impl Tool for GrepTool {
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
 
-        let re = match RegexBuilder::new(&pattern)
-            .case_insensitive(case_i)
-            .build()
-        {
+        let re = match RegexBuilder::new(&pattern).case_insensitive(case_i).build() {
             Ok(r) => r,
             Err(e) => return ToolResult::err(format!("invalid regex: {e}")),
         };

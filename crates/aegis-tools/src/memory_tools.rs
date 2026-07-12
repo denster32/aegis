@@ -34,7 +34,10 @@ impl Tool for MemoryReadTool {
     }
 
     async fn call(&self, args: Value, ctx: &ToolContext) -> ToolResult {
-        let what = args.get("what").and_then(|v| v.as_str()).unwrap_or("memory");
+        let what = args
+            .get("what")
+            .and_then(|v| v.as_str())
+            .unwrap_or("memory");
         let mem = match aegis_memory::ProjectMemory::open(&ctx.cwd) {
             Ok(m) => m,
             Err(e) => return ToolResult::err(e.to_string()),
@@ -137,7 +140,10 @@ impl Tool for MemoryWriteTool {
                 ToolResult::ok("lesson recorded")
             }
             "failure" => {
-                let tool = args.get("tool").and_then(|v| v.as_str()).unwrap_or("unknown");
+                let tool = args
+                    .get("tool")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
                 let pattern = args
                     .get("summary")
                     .and_then(|v| v.as_str())

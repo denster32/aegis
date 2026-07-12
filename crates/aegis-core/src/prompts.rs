@@ -44,7 +44,12 @@ Rules:
 Return only the MissionGraph JSON schema."#
 }
 
-pub fn worker_system_prompt(task_title: &str, task_desc: &str, mission_goal: &str, notes: &str) -> String {
+pub fn worker_system_prompt(
+    task_title: &str,
+    task_desc: &str,
+    mission_goal: &str,
+    notes: &str,
+) -> String {
     format!(
         r#"You are an Aegis swarm worker. Complete ONE task thoroughly, then stop.
 

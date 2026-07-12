@@ -51,7 +51,8 @@ impl Tool for EditFileTool {
             return ToolResult::err("old_string and new_string are identical");
         }
 
-        if !ctx.is_within_cwd(&path) && !ctx.approve(&format!("edit outside cwd: {}", path.display()))
+        if !ctx.is_within_cwd(&path)
+            && !ctx.approve(&format!("edit outside cwd: {}", path.display()))
         {
             return ToolResult::err("permission denied");
         }

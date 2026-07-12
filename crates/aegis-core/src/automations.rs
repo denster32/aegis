@@ -131,7 +131,6 @@ pub fn format_list(autos: &[Automation]) -> String {
     s
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -145,7 +144,8 @@ mod tests {
         fs::write(
             dir.join(".aegis/automations/t.toml"),
             "name=\"t\"\ncommand=\"factory\"\nenabled=true\nstage=\"monitor\"\n",
-        ).unwrap();
+        )
+        .unwrap();
         let list = list(&dir).unwrap();
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].name, "t");

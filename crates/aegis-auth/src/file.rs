@@ -70,9 +70,7 @@ impl AuthEntry {
     }
 
     pub fn issuer(&self) -> &str {
-        self.oidc_issuer
-            .as_deref()
-            .unwrap_or(crate::DEFAULT_ISSUER)
+        self.oidc_issuer.as_deref().unwrap_or(crate::DEFAULT_ISSUER)
     }
 
     pub fn expires_at_dt(&self) -> Option<DateTime<Utc>> {
@@ -186,8 +184,8 @@ pub fn clear_auth_file(path: &Path) -> Result<()> {
 /// Import Grok auth into Aegis auth file (copy).
 pub fn import_grok_to_aegis() -> Result<AuthEntry> {
     let paths = auth_paths();
-    let grok = read_auth_file(&paths.grok)?
-        .context("no ~/.grok/auth.json — run `grok login` first")?;
+    let grok =
+        read_auth_file(&paths.grok)?.context("no ~/.grok/auth.json — run `grok login` first")?;
     let (_, entry) = first_entry(&grok).context("empty grok auth file")?;
     upsert_entry(&paths.aegis, entry.clone())?;
     Ok(entry)

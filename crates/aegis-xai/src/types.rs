@@ -57,7 +57,8 @@ impl ReasoningConfig {
             effort: "high".into(),
         }
     }
-    pub fn from_str(s: &str) -> Self {
+    /// Parse effort name (`low` / `medium` / `high`). Unknown values map to high.
+    pub fn parse_effort(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "low" => Self::low(),
             "medium" => Self::medium(),
@@ -109,8 +110,12 @@ pub enum MessageContent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentPart {
-    InputText { text: String },
-    OutputText { text: String },
+    InputText {
+        text: String,
+    },
+    OutputText {
+        text: String,
+    },
     /// Multimodal image input (data URL or https URL)
     InputImage {
         #[serde(default)]
@@ -181,7 +186,11 @@ pub struct ToolDef {
 }
 
 impl ToolDef {
-    pub fn function(name: impl Into<String>, description: impl Into<String>, parameters: Value) -> Self {
+    pub fn function(
+        name: impl Into<String>,
+        description: impl Into<String>,
+        parameters: Value,
+    ) -> Self {
         Self {
             kind: "function".into(),
             name: name.into(),
@@ -441,7 +450,15 @@ mod grok45_tests {
         let v = serde_json::to_value(&req).unwrap();
         assert_eq!(v["reasoning"]["effort"], "low");
         assert_eq!(v["prompt_cache_key"], "sess-123");
-        assert!(v["tools"].as_array().unwrap().iter().any(|t| t["type"] == "web_search"));
-        assert!(v["tools"].as_array().unwrap().iter().any(|t| t["type"] == "code_execution"));
+        assert!(v["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t["type"] == "web_search"));
+        assert!(v["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t["type"] == "code_execution"));
     }
 }

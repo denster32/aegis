@@ -93,9 +93,7 @@ impl Tool for GlobTool {
 fn globset_from(pattern: &str) -> Result<ignore::gitignore::Gitignore, String> {
     // Use Gitignore builder for simple glob matching of patterns relative to root
     let mut builder = ignore::gitignore::GitignoreBuilder::new("");
-    builder
-        .add_line(None, pattern)
-        .map_err(|e| e.to_string())?;
+    builder.add_line(None, pattern).map_err(|e| e.to_string())?;
     // Also accept **/pattern if bare
     if !pattern.contains('/') && !pattern.starts_with("**") {
         let _ = builder.add_line(None, &format!("**/{pattern}"));
@@ -110,9 +108,6 @@ trait GlobMatch {
 
 impl GlobMatch for ignore::gitignore::Gitignore {
     fn is_match(&self, path: &Path) -> bool {
-        matches!(
-            self.matched(path, false),
-            ignore::Match::Ignore(_)
-        )
+        matches!(self.matched(path, false), ignore::Match::Ignore(_))
     }
 }

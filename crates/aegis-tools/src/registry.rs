@@ -36,14 +36,19 @@ impl ToolResult {
     }
 }
 
+/// Callback used for interactive prompts (`ask_user` / permission gates).
+pub type AskFn = Arc<dyn Fn(&str) -> String + Send + Sync>;
+/// Per-path async mutex map shared across parallel tool tasks.
+pub type PathLockMap = Arc<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>>;
+
 pub struct ToolContext {
     pub cwd: PathBuf,
     pub session_id: String,
     pub permission: PermissionMode,
     /// Optional callback for ask_user / permissions in interactive mode.
-    pub ask: Option<Arc<dyn Fn(&str) -> String + Send + Sync>>,
+    pub ask: Option<AskFn>,
     /// Shared path locks to reduce parallel edit races.
-    pub path_locks: Arc<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>>,
+    pub path_locks: PathLockMap,
     /// Persist todos / notes (injected by core).
     pub todo_store: Option<Arc<dyn TodoStore + Send + Sync>>,
 }
@@ -173,8 +178,8 @@ pub fn default_registry() -> ToolRegistry {
     use crate::fs_tools::{ReadFileTool, WriteFileTool};
     use crate::git_tools::{GitDiffTool, GitStatusTool};
     use crate::grep::GrepTool;
-    use crate::search::GlobTool;
     use crate::memory_tools::{MemoryReadTool, MemoryWriteTool};
+    use crate::search::GlobTool;
     use crate::todo::TodoWriteTool;
     use crate::vision::{ScreenshotTool, VisionDescribeTool};
     use crate::web::WebFetchTool;

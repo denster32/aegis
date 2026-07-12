@@ -25,16 +25,19 @@ aegis auth status
 | `aegis memory show` | Project learning |
 | `aegis readiness` | L1–L5 agent readiness score |
 | `aegis auth *` / `login` | OAuth |
+| `aegis checkpoint *` | Git checkpoint / restore |
+| `aegis vision` | Describe an image |
+| `aegis session *` | Session management |
 
 ### Common flags
 
-`--effort low\|medium\|high` · `--yolo` · `--cwd` · `--session` · `--no-learn` · `--stream` · `-v`
+`--effort low|medium|high` · `--yolo` · `--cwd` · `--session` · `--no-learn` · `--stream` · `-v` · `-m`
 
 ### Examples
 
 ```bash
 aegis -p "Reply with exactly: pong"
-aegis --yolo -p "Create hello.txt with hi"
+aegis --yolo --effort low -p "Create hello.txt with hi"
 aegis memory show
 aegis readiness
 aegis missions new "add a /health endpoint"
@@ -51,7 +54,8 @@ aegis missions run <id>
 | `aegis review --pr N` | PR code review |
 | `aegis install-qa` / `aegis qa` | Automated QA |
 | `aegis automation list` | Scheduled/event automations |
-| `aegis install-code-review` | Install code-review automation (readiness gap) |
+| `aegis install-code-review` | Install code-review automation |
+| `aegis install-wiki-refresh` | Install wiki-refresh workflow |
 
 ## Dev / CI
 

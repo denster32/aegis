@@ -114,9 +114,11 @@ impl Tool for WriteFileTool {
             }
         }
         match fs::write(&path, content).await {
-            Ok(()) => {
-                ToolResult::ok(format!("wrote {} bytes to {}", content.len(), path.display()))
-            }
+            Ok(()) => ToolResult::ok(format!(
+                "wrote {} bytes to {}",
+                content.len(),
+                path.display()
+            )),
             Err(e) => ToolResult::err(format!("write {}: {e}", path.display())),
         }
     }
@@ -126,7 +128,6 @@ impl Tool for WriteFileTool {
 mod tests {
     use super::*;
     use crate::registry::{PermissionMode, ToolContext};
-    use std::path::PathBuf;
 
     #[tokio::test]
     async fn write_and_read_roundtrip() {
@@ -136,16 +137,11 @@ mod tests {
         let ctx = ToolContext::new(dir.clone(), "test".into(), PermissionMode::Yolo);
         let w = WriteFileTool;
         let r = w
-            .call(
-                json!({"path": "a.txt", "content": "hello"}),
-                &ctx,
-            )
+            .call(json!({"path": "a.txt", "content": "hello"}), &ctx)
             .await;
         assert!(r.ok, "{}", r.output);
         let reader = ReadFileTool;
-        let out = reader
-            .call(json!({"path": "a.txt"}), &ctx)
-            .await;
+        let out = reader.call(json!({"path": "a.txt"}), &ctx).await;
         assert!(out.ok);
         assert!(out.output.contains("hello"));
         let _ = std::fs::remove_dir_all(&dir);

@@ -14,11 +14,12 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.5.1"
 edition = "2021"
 license = "MIT"
 authors = ["Dennis"]
-repository = "https://github.com/local/aegis"
+repository = "https://github.com/denster32/aegis"
+description = "Sovereign Grok-native coding agent in Rust"
 
 [workspace.dependencies]
 aegis-auth = { path = "crates/aegis-auth" }

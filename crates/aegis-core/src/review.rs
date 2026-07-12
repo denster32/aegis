@@ -61,7 +61,10 @@ pub async fn review_diff(
     let dir = root.join(".aegis/reviews");
     fs::create_dir_all(&dir)?;
     fs::write(
-        dir.join(format!("diff-{}.md", chrono::Utc::now().format("%Y%m%d_%H%M%S"))),
+        dir.join(format!(
+            "diff-{}.md",
+            chrono::Utc::now().format("%Y%m%d_%H%M%S")
+        )),
         format_report_md(&report),
     )?;
     Ok(report)

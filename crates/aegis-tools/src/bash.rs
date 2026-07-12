@@ -50,10 +50,10 @@ impl Tool for BashTool {
         if matches!(ctx.permission, PermissionMode::Deny) {
             return ToolResult::err("bash disabled by permission mode");
         }
-        if matches!(ctx.permission, PermissionMode::Prompt) {
-            if !ctx.approve(&format!("run bash: {command}")) {
-                return ToolResult::err("bash denied by user");
-            }
+        if matches!(ctx.permission, PermissionMode::Prompt)
+            && !ctx.approve(&format!("run bash: {command}"))
+        {
+            return ToolResult::err("bash denied by user");
         }
 
         let mut child = match Command::new("bash")

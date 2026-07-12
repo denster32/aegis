@@ -144,8 +144,7 @@ pub fn assess_v2(root: &Path) -> ReadinessV2Report {
     criteria.push(crit(
         "l4_aegis_memory",
         4,
-        root.join(".aegis/MEMORY.md").exists()
-            || root.join(".aegis/LESSONS.jsonl").exists(),
+        root.join(".aegis/MEMORY.md").exists() || root.join(".aegis/LESSONS.jsonl").exists(),
         "Aegis project memory",
     ));
     criteria.push(crit(
@@ -177,8 +176,7 @@ pub fn assess_v2(root: &Path) -> ReadinessV2Report {
     criteria.push(crit(
         "l5_dream",
         5,
-        root.join(".aegis/dreams").exists()
-            || root.join(".aegis/automations").exists(),
+        root.join(".aegis/dreams").exists() || root.join(".aegis/automations").exists(),
         "dream/automations present",
     ));
     criteria.push(crit(
@@ -196,8 +194,7 @@ pub fn assess_v2(root: &Path) -> ReadinessV2Report {
     criteria.push(crit(
         "l5_factory",
         5,
-        root.join(".aegis/factory").exists()
-            || root.join(".aegis/automations").exists(),
+        root.join(".aegis/factory").exists() || root.join(".aegis/automations").exists(),
         "software factory coverage files",
     ));
 
@@ -355,26 +352,30 @@ fn compute_level(criteria: &[CriterionResult]) -> u8 {
 fn group_pillars(criteria: &[CriterionResult]) -> Vec<PillarScore> {
     // Map criterion ids to pillars
     let mapping: &[(&str, &[&str])] = &[
-        (
-            "Style & Validation",
-            &["l1_linter"],
-        ),
+        ("Style & Validation", &["l1_linter"]),
         ("Build System", &["l1_manifest", "l3_lockfile", "l1_vcs"]),
         ("Testing", &["l1_tests", "l4_tests_run", "l4_qa_skill"]),
         (
             "Documentation",
             &["l1_readme", "l2_agents", "l2_contributing", "l4_wiki"],
         ),
-        ("Development Environment", &["l2_env_example", "l2_gitignore"]),
+        (
+            "Development Environment",
+            &["l2_env_example", "l2_gitignore"],
+        ),
         ("Debugging & Observability", &[]),
         ("Security", &["l3_security", "l2_license"]),
-        (
-            "Task Discovery",
-            &["l3_pr_template", "l3_issue_template"],
-        ),
+        ("Task Discovery", &["l3_pr_template", "l3_issue_template"]),
         (
             "Product & Experimentation",
-            &["l3_ci", "l4_review_workflow", "l5_dream", "l5_missions", "l5_self_improve", "l5_factory"],
+            &[
+                "l3_ci",
+                "l4_review_workflow",
+                "l5_dream",
+                "l5_missions",
+                "l5_self_improve",
+                "l5_factory",
+            ],
         ),
     ];
 
@@ -455,7 +456,6 @@ pub fn format_report(r: &ReadinessV2Report) -> String {
     }
     s
 }
-
 
 #[cfg(test)]
 mod tests {

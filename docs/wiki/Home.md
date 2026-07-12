@@ -1,49 +1,32 @@
 # Aegis Wiki
 
-**Sovereign, Grok-native coding agent in Rust** — tools, Missions, and project learning that improves every run.
+**Aegis** is a sovereign Grok-native coding agent written in Rust.
 
-| | |
-|--|--|
-| **License** | MIT |
-| **Rust** | 1.96+ |
-| **Repo** | [denster32/aegis](https://github.com/denster32/aegis) |
+## Start here
 
-## Why Aegis
+- [Commands](Commands.md) — full CLI map
+- [Architecture](Architecture.md) — crate layout
+- [Modules](Modules.md) — module notes
+- [Conventions](Conventions.md) — project norms
 
-| Capability | What you get |
-|------------|----------------|
-| **Grok OAuth** | Reuses `grok login` / `~/.grok/auth.json` |
-| **Coding tools** | read/write/edit, bash, glob, grep, git, web, memory |
-| **Learning loop** | Self-heal mid-run · reflect after-run · `.aegis/` memory |
-| **Missions** | Plan → Mission Control → execute → validate |
-| **Swarm** | DAG workers for parallel features |
+## External docs (repo)
+
+| Topic | Link |
+|-------|------|
+| Auth | [../auth.md](../auth.md) |
+| Grok 4.5 | [../xai-capabilities.md](../xai-capabilities.md) |
+| Learning | [../learning.md](../learning.md) |
+| Missions | [../missions.md](../missions.md) |
+| Stress | [../stress.md](../stress.md) |
+| Changelog | [../../CHANGELOG.md](../../CHANGELOG.md) |
 
 ## Quick start
 
 ```bash
-./install.sh   # or: cargo install --path crates/aegis --force
-grok login     # or: aegis login
+./install.sh
+grok login          # or: aegis login
+aegis auth status
 aegis -p "Reply with exactly: pong"
-aegis readiness
 ```
 
-## Wiki pages
-
-- [Architecture](Architecture.md) — crates, agent loop, data flow
-- [Modules](Modules.md) — core library modules and platform features
-- [Commands](Commands.md) — CLI map, flags, platform commands
-- [Conventions](Conventions.md) — workspace layout, memory, process norms
-
-## Learning on every run
-
-Project state under `.aegis/`:
-
-- `MEMORY.md` — stack, commands, conventions
-- `LESSONS.jsonl` / `FAILURES.jsonl` — durable lessons & heal patterns
-- `SKILLS/` — playbooks Missions can reuse
-
-## Platform (Factory-inspired)
-
-`dream` · `readiness` · `factory` · `wiki generate` · `review` · `qa` · `automation`
-
-See also `docs/dream.md`, `docs/factory.md`, `docs/readiness.md`, `docs/missions.md`, `docs/learning.md`.
+Version target: **0.5.1+**.

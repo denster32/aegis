@@ -18,11 +18,7 @@ struct WikiBundle {
     conventions: String,
 }
 
-pub async fn generate_wiki(
-    root: &Path,
-    client: &ResponsesClient,
-    model: &str,
-) -> Result<usize> {
+pub async fn generate_wiki(root: &Path, client: &ResponsesClient, model: &str) -> Result<usize> {
     let mem = ProjectMemory::open(root).ok();
     let memory = mem
         .as_ref()

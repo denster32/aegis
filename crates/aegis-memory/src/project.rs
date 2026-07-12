@@ -77,8 +77,7 @@ impl ProjectMemory {
         let paths = ProjectPaths::for_cwd(cwd);
         paths.ensure()?;
         let metrics = if paths.metrics.exists() {
-            serde_json::from_str(&fs::read_to_string(&paths.metrics)?)
-                .unwrap_or_default()
+            serde_json::from_str(&fs::read_to_string(&paths.metrics)?).unwrap_or_default()
         } else {
             ProjectMetrics::default()
         };
@@ -165,7 +164,13 @@ impl ProjectMemory {
     pub fn write_skill(&self, name: &str, body: &str) -> Result<PathBuf> {
         let safe: String = name
             .chars()
-            .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+            .map(|c| {
+                if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                    c
+                } else {
+                    '_'
+                }
+            })
             .collect();
         let path = self.paths.skills.join(format!("{safe}.md"));
         fs::write(&path, redact_secrets(body))?;
@@ -257,10 +262,7 @@ fn upsert_section(md: &str, heading: &str, body: &str) -> String {
     if let Some(start) = md.find(heading) {
         let after = start + heading.len();
         let rest = &md[after..];
-        let end = rest
-            .find("\n## ")
-            .map(|i| after + i)
-            .unwrap_or(md.len());
+        let end = rest.find("\n## ").map(|i| after + i).unwrap_or(md.len());
         format!(
             "{}{}\n\n{}\n{}",
             &md[..start],

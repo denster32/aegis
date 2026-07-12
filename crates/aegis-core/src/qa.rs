@@ -201,8 +201,6 @@ fn truncate(s: &str, n: usize) -> String {
 
 fn which_in_path(name: &str) -> bool {
     std::env::var_os("PATH")
-        .map(|p| {
-            std::env::split_paths(&p).any(|d| d.join(name).is_file())
-        })
+        .map(|p| std::env::split_paths(&p).any(|d| d.join(name).is_file()))
         .unwrap_or(false)
 }
