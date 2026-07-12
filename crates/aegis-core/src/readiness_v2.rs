@@ -425,35 +425,59 @@ fn recommend(failing: &[String]) -> Vec<String> {
 }
 
 pub fn format_report(r: &ReadinessV2Report) -> String {
-    let mut s = format!(
-        "Agent Readiness: {} (level {}) · overall {}%\n\n",
-        r.level_name, r.level, r.score_pct
-    );
+    use crate::ui;
+    use console::style;
+
+    let mut s = String::new();
+    s.push_str(&ui::header("readiness"));
+    s.push_str(&format!(
+        "{}\n{}\n\n",
+        ui::kv("level", format!("L{}  {}", r.level, r.level_name)),
+        ui::kv("score", format!("{}%", r.score_pct)),
+    ));
+
     for p in &r.pillars {
         if p.total == 0 {
             continue;
         }
+        let complete = p.passed == p.total;
+        let mark = if complete {
+            ui::mark_ok()
+        } else {
+            ui::mark_idle()
+        };
         s.push_str(&format!(
-            "  {}  {}/{}  {}\n",
-            if p.passed == p.total { "✓" } else { "·" },
-            p.passed,
-            p.total,
-            p.name
+            "  {}  {}  {}\n",
+            mark,
+            style(format!("{}/{}", p.passed, p.total)).white(),
+            style(&p.name).white()
         ));
         for c in &p.criteria {
             s.push_str(&format!(
-                "      {} {}\n",
-                if c.passed { "✓" } else { "✗" },
-                c.detail
+                "      {}  {}\n",
+                if c.passed {
+                    ui::mark_ok()
+                } else {
+                    ui::mark_fail()
+                },
+                if c.passed {
+                    style(&c.detail).dim().to_string()
+                } else {
+                    style(&c.detail).white().to_string()
+                }
             ));
         }
     }
+
     if !r.recommendations.is_empty() {
-        s.push_str("\nRecommendations:\n");
+        s.push('\n');
+        s.push_str(&ui::label("next"));
+        s.push('\n');
         for rec in &r.recommendations {
-            s.push_str(&format!("  → {rec}\n"));
+            s.push_str(&format!("  {}  {}\n", ui::mark_active(), style(rec).dim()));
         }
     }
+    s.push('\n');
     s
 }
 

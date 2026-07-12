@@ -5,7 +5,7 @@ use aegis_core::{
     assess_v2, automations, checkpoint_create, checkpoint_list, checkpoint_restore, factory_status,
     format_factory, format_readiness_v2, generate_wiki, install_dream_cron, install_qa,
     install_review_workflow, install_wiki_workflow, missions_new, missions_run, missions_status,
-    readiness_report, review_diff, review_pr, run_dream, run_mission, run_plan, run_qa,
+    readiness_report, review_diff, review_pr, run_dream, run_mission, run_plan, run_qa, ui,
     AegisConfig, AgentLoop, DreamOptions, Effort, MissionOptions,
 };
 use aegis_memory::ProjectMemory;
@@ -14,12 +14,25 @@ use aegis_tools::{default_registry, PermissionMode, ToolRegistry};
 use aegis_xai::{ResponsesClient, TokenSource as XaiTokenSource};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use clap::builder::styling::{AnsiColor, Effects, Styles};
 use clap::{Parser, Subcommand};
 use console::style;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tracing_subscriber::EnvFilter;
+
+/// SpaceX / xAI monochrome clap palette.
+fn clap_styles() -> Styles {
+    Styles::styled()
+        .header(AnsiColor::White.on_default().effects(Effects::BOLD))
+        .usage(AnsiColor::White.on_default().effects(Effects::BOLD))
+        .literal(AnsiColor::White.on_default())
+        .placeholder(AnsiColor::BrightBlack.on_default())
+        .error(AnsiColor::Red.on_default().effects(Effects::BOLD))
+        .valid(AnsiColor::White.on_default())
+        .invalid(AnsiColor::Red.on_default())
+}
 
 /// Bridge aegis-auth → aegis-xai token traits.
 struct AuthBridge(Arc<AuthProvider>);
@@ -38,7 +51,10 @@ impl XaiTokenSource for AuthBridge {
 #[command(
     name = "aegis",
     version,
-    about = "Sovereign Grok 4.5 coding agent (Rust)"
+    about = "Sovereign Grok coding agent",
+    long_about = "AEGIS — sovereign Grok-native coding agent.\n\
+                  Black · white · precise. Tools, Missions, learning.",
+    styles = clap_styles()
 )]
 struct Cli {
     /// One-shot prompt (non-interactive)
@@ -83,7 +99,11 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Run a multi-agent mission (DAG swarm)
+    // ── Agent ──────────────────────────────────────────────
+    /// Structured plan only
+    #[command(next_help_heading = "Agent")]
+    Plan { goal: String },
+    /// Multi-agent DAG swarm mission
     Mission {
         goal: String,
         #[arg(long, default_value_t = 4)]
@@ -91,21 +111,45 @@ enum Commands {
         #[arg(long)]
         approve: bool,
     },
-    /// Structured plan only
-    Plan { goal: String },
-    /// Factory-style Missions (plan → Mission Control → execute)
+    /// Factory Missions (plan → control → execute)
     Missions {
         #[command(subcommand)]
         action: MissionsCmd,
     },
-    /// Project readiness checklist (use --v2 for L1–L5 pillars)
+    /// Project memory (learning)
+    Memory {
+        #[command(subcommand)]
+        action: MemoryCmd,
+    },
+    /// Session management
+    Session {
+        #[command(subcommand)]
+        action: SessionCmd,
+    },
+    /// Git checkpoint / restore
+    Checkpoint {
+        #[command(subcommand)]
+        action: CheckpointCmd,
+    },
+    /// Vision: describe an image
+    Vision {
+        path: String,
+        #[arg(long, default_value = "Describe this image and note any issues.")]
+        question: String,
+    },
+
+    // ── Platform ───────────────────────────────────────────
+    /// Agent readiness L1–L5
+    #[command(next_help_heading = "Platform")]
     Readiness {
         #[arg(long)]
         json: bool,
         #[arg(long, default_value_t = true)]
         v2: bool,
     },
-    /// Nightly dream — deep self-improve / reflect
+    /// Software Factory SDLC coverage map
+    Factory,
+    /// Nightly dream — deep self-improve
     Dream {
         #[arg(long)]
         apply: bool,
@@ -114,8 +158,6 @@ enum Commands {
         #[command(subcommand)]
         action: Option<DreamCmd>,
     },
-    /// Software Factory SDLC coverage map
-    Factory,
     /// Project wiki generate / refresh
     Wiki {
         #[command(subcommand)]
@@ -130,44 +172,29 @@ enum Commands {
         #[arg(long, default_value = "deep")]
         depth: String,
     },
-    /// Install Automated QA skills
-    InstallQa,
     /// Run Automated QA
     Qa {
         #[arg(long)]
         base: Option<String>,
-    },
-    /// Install GH code-review workflow
-    InstallCodeReview,
-    /// Install GH wiki-refresh workflow
-    InstallWikiRefresh,
-    /// Git checkpoint / restore
-    Checkpoint {
-        #[command(subcommand)]
-        action: CheckpointCmd,
-    },
-    /// Vision: describe an image
-    Vision {
-        path: String,
-        #[arg(long, default_value = "Describe this image and note any issues.")]
-        question: String,
     },
     /// File-based automations
     Automation {
         #[command(subcommand)]
         action: AutomationCmd,
     },
-    /// Project memory (learning)
-    Memory {
-        #[command(subcommand)]
-        action: MemoryCmd,
-    },
-    /// Session management
-    Session {
-        #[command(subcommand)]
-        action: SessionCmd,
-    },
+
+    // ── Install ────────────────────────────────────────────
+    /// Install Automated QA skills
+    #[command(next_help_heading = "Install")]
+    InstallQa,
+    /// Install GH code-review workflow
+    InstallCodeReview,
+    /// Install GH wiki-refresh workflow
+    InstallWikiRefresh,
+
+    // ── Auth ───────────────────────────────────────────────
     /// Authenticate with Grok OAuth
+    #[command(next_help_heading = "Auth")]
     Login {
         /// Use device-code flow (default on headless)
         #[arg(long, default_value_t = true)]
@@ -288,7 +315,7 @@ async fn main() -> Result<()> {
                 MemoryCmd::Show => println!("{}", mem.summary_report()?),
                 MemoryCmd::Clear => {
                     mem.clear_lessons_failures()?;
-                    println!("cleared LESSONS.jsonl and FAILURES.jsonl");
+                    println!("{}", ui::event("memory", "cleared lessons + failures"));
                 }
                 MemoryCmd::Dump => println!("{}", mem.read_memory_md()?),
             }
@@ -325,7 +352,10 @@ async fn main() -> Result<()> {
             action: AutomationCmd::Ensure,
         }) => {
             automations::ensure_defaults(&cwd_early)?;
-            println!("default automations ensured under .aegis/automations/");
+            println!(
+                "{}",
+                ui::event("automations", "defaults ensured under .aegis/automations/")
+            );
             return Ok(());
         }
         Some(Commands::Missions {
@@ -343,16 +373,23 @@ async fn main() -> Result<()> {
         Some(Commands::Session {
             action: SessionCmd::List { limit },
         }) => {
+            println!("{}", ui::header("sessions"));
             for s in store.list_sessions(*limit)? {
                 println!(
-                    "{}  {}  {}  in={} out={}",
-                    style(&s.id[..8.min(s.id.len())]).cyan(),
-                    s.updated_at,
-                    s.model,
-                    s.total_input_tokens,
-                    s.total_output_tokens
+                    "  {}  {}  {}",
+                    style(&s.id[..8.min(s.id.len())]).white(),
+                    style(&s.model).dim(),
+                    style(format!(
+                        "in={} out={}",
+                        s.total_input_tokens, s.total_output_tokens
+                    ))
+                    .dim()
                 );
-                println!("    {}", s.cwd);
+                println!(
+                    "      {}  {}",
+                    style(&s.updated_at).dim(),
+                    style(&s.cwd).dim()
+                );
             }
             return Ok(());
         }
@@ -360,21 +397,28 @@ async fn main() -> Result<()> {
             action: SessionCmd::Show { id },
         }) => {
             let s = resolve_session(&store, id)?;
+            println!("{}", ui::header("session"));
+            println!("{}", ui::kv("id", &s.id));
+            println!("{}", ui::kv("model", &s.model));
+            println!("{}", ui::kv("cwd", &s.cwd));
             println!(
-                "id={} model={} cwd={}\nin_tokens={} out_tokens={}\nprev_response={:?}",
-                s.id,
-                s.model,
-                s.cwd,
-                s.total_input_tokens,
-                s.total_output_tokens,
-                s.previous_response_id
+                "{}",
+                ui::kv(
+                    "tokens",
+                    format!("in={} out={}", s.total_input_tokens, s.total_output_tokens)
+                )
             );
+            println!(
+                "{}",
+                ui::kv("prev", s.previous_response_id.as_deref().unwrap_or("—"))
+            );
+            println!("{}", ui::rule());
             for m in store.messages(&s.id)? {
                 println!(
-                    "[{}] {}: {}",
-                    m.created_at,
-                    m.role,
-                    truncate(&m.content, 240)
+                    "  {}  {}  {}",
+                    style(&m.role).dim(),
+                    style(&m.created_at).dim(),
+                    style(truncate(&m.content, 240)).white()
                 );
             }
             return Ok(());
@@ -386,27 +430,38 @@ async fn main() -> Result<()> {
         }) => {
             if *import_grok {
                 let e = import_grok_to_aegis()?;
+                println!("{}", ui::header("login"));
+                println!("{}", ui::kv("action", "import grok → aegis"));
+                println!("{}", ui::kv("email", e.email.as_deref().unwrap_or("—")));
                 println!(
-                    "Imported Grok OAuth into Aegis (email={:?}, expires={:?})",
-                    e.email, e.expires_at
+                    "{}",
+                    ui::kv("expires", e.expires_at.as_deref().unwrap_or("—"))
                 );
                 return Ok(());
             }
             let ap = auth_paths();
             let entry = device_login(&ap, !*write_grok).await?;
+            println!("{}", ui::header("login"));
             println!(
-                "Login OK. source={} email={:?} expires={:?}",
-                if *write_grok { "grok" } else { "aegis" },
-                entry.email,
-                entry.expires_at
+                "{}",
+                ui::kv("source", if *write_grok { "grok" } else { "aegis" })
+            );
+            println!("{}", ui::kv("email", entry.email.as_deref().unwrap_or("—")));
+            println!(
+                "{}",
+                ui::kv("expires", entry.expires_at.as_deref().unwrap_or("—"))
             );
             return Ok(());
         }
         Some(Commands::Logout) => {
             let ap = auth_paths();
             clear_auth_file(&ap.aegis)?;
-            println!("Cleared Aegis auth file ({})", ap.aegis.display());
-            println!("Note: ~/.grok/auth.json left intact. Run `grok logout` to clear that.");
+            println!("{}", ui::header("logout"));
+            println!("{}", ui::kv("cleared", ap.aegis.display().to_string()));
+            println!(
+                "  {}",
+                style("~/.grok/auth.json left intact — grok logout to clear").dim()
+            );
             return Ok(());
         }
         Some(Commands::Auth {
@@ -415,16 +470,21 @@ async fn main() -> Result<()> {
             match AuthProvider::resolve() {
                 Ok(p) => {
                     let st = p.status();
-                    println!("source:        {}", st.source.as_str());
-                    println!("email:         {}", st.email.as_deref().unwrap_or("-"));
-                    println!("expires_at:    {}", st.expires_at.as_deref().unwrap_or("-"));
-                    println!("team_id:       {}", st.team_id.as_deref().unwrap_or("-"));
-                    println!("auth_mode:     {}", st.auth_mode.as_deref().unwrap_or("-"));
-                    println!("path:          {}", st.path.as_deref().unwrap_or("-"));
-                    println!("needs_refresh: {}", st.needs_refresh);
+                    print!(
+                        "{}",
+                        ui::auth_status(
+                            st.source.as_str(),
+                            st.email.as_deref().unwrap_or("—"),
+                            st.expires_at.as_deref().unwrap_or("—"),
+                            st.team_id.as_deref().unwrap_or("—"),
+                            st.auth_mode.as_deref().unwrap_or("—"),
+                            st.path.as_deref().unwrap_or("—"),
+                            st.needs_refresh,
+                        )
+                    );
                 }
                 Err(e) => {
-                    println!("not signed in: {e:#}");
+                    print!("{}", ui::auth_unsigned(&format!("{e:#}")));
                     std::process::exit(1);
                 }
             }
@@ -436,9 +496,11 @@ async fn main() -> Result<()> {
             let p = AuthProvider::resolve()?;
             p.force_refresh().await?;
             let st = p.status();
+            println!("{}", ui::header("auth"));
+            println!("{}", ui::kv("action", "refresh"));
             println!(
-                "refreshed. expires_at={}",
-                st.expires_at.as_deref().unwrap_or("-")
+                "{}",
+                ui::kv("expires", st.expires_at.as_deref().unwrap_or("—"))
             );
             return Ok(());
         }
@@ -500,7 +562,7 @@ async fn main() -> Result<()> {
             })
             .collect();
         if let Err(e) = aegis_mcp::register_mcp_tools(&mut registry, &servers).await {
-            eprintln!("{} MCP: {e:#}", style("warn").yellow());
+            eprintln!("{}", ui::warn_line(format!("MCP: {e:#}")));
         }
     }
     let tools = Arc::new(registry);
@@ -562,10 +624,11 @@ async fn main() -> Result<()> {
                 workers,
             };
             let out = run_mission(agent, &goal, opts).await?;
-            println!("\n{}", style("── done ──").dim());
+            println!("\n{}", ui::footer_done());
             println!("{out}");
         }
         Some(Commands::Plan { goal }) => {
+            println!("{}", ui::header("plan"));
             let plan = run_plan(&mut agent, &goal).await?;
             println!("{}", serde_json::to_string_pretty(&plan)?);
             let _ = agent.reflect_and_save().await;
@@ -573,13 +636,14 @@ async fn main() -> Result<()> {
         Some(Commands::Missions {
             action: MissionsCmd::New { goal, oneshot },
         }) => {
+            println!("{}", ui::header("missions"));
             let plan = missions_new(&mut agent, &goal, oneshot).await?;
             println!("{}", serde_json::to_string_pretty(&plan)?);
+            println!("{}", ui::rule());
+            println!("{}", ui::kv("saved", &plan.id));
             println!(
-                "\n{} Mission {} saved. Run: aegis missions run {}",
-                style("◆").magenta(),
-                plan.id,
-                &plan.id[..8]
+                "{}",
+                ui::kv("next", format!("aegis missions run {}", &plan.id[..8]))
             );
         }
         Some(Commands::Missions {
@@ -612,30 +676,40 @@ async fn main() -> Result<()> {
                 max_proposals: 5,
                 refresh_wiki: true,
             };
-            println!("{} starting dream…", style("◆").magenta());
+            println!("{}", ui::header("dream"));
+            println!("{}", ui::kv("phase", "run"));
             let journal = run_dream(&agent.client, &cwd, opts).await?;
+            println!("{}", ui::kv("id", &journal.id));
+            println!("{}", ui::kv("applied", format!("{:?}", journal.applied)));
             println!(
-                "Dream {} complete. Applied: {:?}\nProposals: {}",
-                journal.id,
-                journal.applied,
-                journal.proposals.len()
+                "{}",
+                ui::kv("proposals", journal.proposals.len().to_string())
             );
+            println!("{}", ui::rule());
             for p in &journal.proposals {
-                println!("  • [{}] {}", p.kind, p.title);
+                println!(
+                    "  {}  {}  {}",
+                    ui::mark_idle(),
+                    style(&p.kind).dim(),
+                    style(&p.title).white()
+                );
             }
-            println!("Journal under .aegis/dreams/");
+            println!("\n  {}", style("journal · .aegis/dreams/").dim());
         }
         Some(Commands::Wiki { action }) => {
             let model = config.model.clone();
             match action {
                 WikiCmd::Generate | WikiCmd::Refresh => {
+                    println!("{}", ui::header("wiki"));
                     let n = generate_wiki(&cwd, &agent.client, &model).await?;
-                    println!("Wrote {n} wiki pages under docs/wiki/");
+                    println!("{}", ui::kv("pages", n.to_string()));
+                    println!("{}", ui::kv("path", "docs/wiki/"));
                 }
             }
         }
         Some(Commands::Review { pr, diff, depth }) => {
             let model = config.model.clone();
+            println!("{}", ui::header("review"));
             let report = if let Some(n) = pr {
                 review_pr(&agent.client, &model, &cwd, n, &depth).await?
             } else if diff {
@@ -643,48 +717,75 @@ async fn main() -> Result<()> {
             } else {
                 anyhow::bail!("pass --pr N or --diff");
             };
-            println!("{}\napprove={}", report.summary, report.approve);
+            println!("{}", ui::kv("summary", &report.summary));
+            println!(
+                "{}",
+                ui::kv("approve", if report.approve { "yes" } else { "no" })
+            );
+            println!("{}", ui::rule());
             for f in &report.findings {
-                println!("  [{}] {} — {}", f.severity, f.title, f.detail);
+                println!(
+                    "  {}  {}  {}  {}",
+                    ui::mark_idle(),
+                    style(&f.severity).dim(),
+                    style(&f.title).white(),
+                    style(&f.detail).dim()
+                );
             }
         }
         Some(Commands::Checkpoint { action }) => match action {
             CheckpointCmd::Create { label } => {
                 let cp = checkpoint_create(&cwd, &label)?;
-                println!("checkpoint {} (stash={:?})", cp.id, cp.stash_ref);
+                println!("{}", ui::header("checkpoint"));
+                println!("{}", ui::kv("id", &cp.id));
+                println!("{}", ui::kv("stash", format!("{:?}", cp.stash_ref)));
             }
             CheckpointCmd::List => {
+                println!("{}", ui::header("checkpoints"));
                 for c in checkpoint_list(&cwd)? {
-                    println!("{}  {}  {}", c.id, c.label, c.created_at);
+                    println!(
+                        "  {}  {}  {}",
+                        style(&c.id).white(),
+                        style(&c.label).dim(),
+                        style(&c.created_at).dim()
+                    );
                 }
             }
             CheckpointCmd::Restore { id } => {
+                println!("{}", ui::header("checkpoint"));
                 println!("{}", checkpoint_restore(&cwd, &id)?);
             }
         },
         Some(Commands::Vision { path, question }) => {
             let p = std::path::PathBuf::from(&path);
             let p = if p.is_absolute() { p } else { cwd.join(p) };
+            println!("{}", ui::header("vision"));
             let out = aegis_tools::describe_image_file(&p, &question).await?;
             println!("{out}");
         }
         Some(Commands::InstallQa) => {
+            println!("{}", ui::header("install"));
             println!("{}", install_qa(&cwd)?);
         }
         Some(Commands::Qa { base }) => {
+            println!("{}", ui::header("qa"));
             println!("{}", run_qa(&cwd, base.as_deref())?);
         }
         Some(Commands::InstallCodeReview) => {
             let p = install_review_workflow(&cwd)?;
-            println!("wrote {}", p.display());
+            println!("{}", ui::header("install"));
+            println!("{}", ui::kv("workflow", p.display().to_string()));
         }
         Some(Commands::InstallWikiRefresh) => {
             let p = install_wiki_workflow(&cwd)?;
-            println!("wrote {}", p.display());
+            println!("{}", ui::header("install"));
+            println!("{}", ui::kv("workflow", p.display().to_string()));
         }
         Some(Commands::Automation {
             action: AutomationCmd::Run { name },
         }) => {
+            println!("{}", ui::header("automation"));
+            println!("{}", ui::kv("run", &name));
             println!("{}", automations::run(&cwd, &name)?);
         }
         Some(Commands::Automation {
@@ -695,7 +796,8 @@ async fn main() -> Result<()> {
             let _ = install_review_workflow(&cwd);
             let _ = install_wiki_workflow(&cwd);
             let _ = install_qa(&cwd);
-            println!("installed automations + default workflows/skills");
+            println!("{}", ui::header("install"));
+            println!("{}", ui::event("ok", "automations · workflows · skills"));
         }
         Some(Commands::Missions { .. })
         | Some(Commands::Memory { .. })
@@ -708,8 +810,17 @@ async fn main() -> Result<()> {
         | Some(Commands::Auth { .. }) => unreachable!(),
         None => {
             if let Some(p) = cli.prompt {
+                eprint!(
+                    "{}",
+                    ui::run_header(
+                        &agent.config.model,
+                        agent.config.reasoning_effort.as_str(),
+                        &agent.session_id[..8.min(agent.session_id.len())],
+                    )
+                );
                 let _ = agent.run_turn(&p).await?;
                 let _ = agent.reflect_and_save().await;
+                eprintln!("{}", ui::footer_done());
             } else {
                 repl(agent, store).await?;
             }
@@ -732,23 +843,21 @@ fn resolve_session(store: &Store, id: &str) -> Result<aegis_store::SessionMeta> 
 }
 
 async fn repl(mut agent: AgentLoop, store: Arc<Store>) -> Result<()> {
-    let st_auth = ""; // decorative
-    let _ = st_auth;
-    println!(
-        "{} {}  session {}  model {}",
-        style("aegis").bold().cyan(),
-        env!("CARGO_PKG_VERSION"),
-        style(&agent.session_id[..8]).dim(),
-        style(&agent.config.model).green()
-    );
-    println!(
-        "cwd {}  |  /quit /plan /mission /missions /memory /yolo /cost /compact /model /clear\n",
-        agent.cwd.display()
+    print!(
+        "{}",
+        ui::repl_banner(
+            env!("CARGO_PKG_VERSION"),
+            &agent.session_id[..8],
+            &agent.config.model,
+            agent.config.reasoning_effort.as_str(),
+            &agent.cwd.display().to_string(),
+            agent.config.yolo,
+        )
     );
 
     let stdin = io::stdin();
     loop {
-        eprint!("{} ", style("❯").cyan().bold());
+        eprint!("{} ", ui::prompt_glyph());
         let _ = io::stderr().flush();
         let mut line = String::new();
         if stdin.lock().read_line(&mut line)? == 0 {
@@ -758,8 +867,9 @@ async fn repl(mut agent: AgentLoop, store: Arc<Store>) -> Result<()> {
         if line.is_empty() {
             continue;
         }
-        if line == "/quit" || line == "/exit" {
+        if matches!(line, "/quit" | "/exit" | "quit" | "exit" | ":q") {
             let _ = agent.reflect_and_save().await;
+            println!("{}", ui::footer_done());
             break;
         }
         if line == "/memory" {
@@ -779,32 +889,38 @@ async fn repl(mut agent: AgentLoop, store: Arc<Store>) -> Result<()> {
                 );
             } else if let Some(goal) = rest.strip_prefix("new ") {
                 match missions_new(&mut agent, goal.trim(), true).await {
-                    Ok(p) => println!(
-                        "created mission {} — aegis missions run {}",
-                        p.id,
-                        &p.id[..8]
-                    ),
-                    Err(e) => eprintln!("missions new: {e:#}"),
+                    Ok(p) => {
+                        println!("{}", ui::kv("saved", &p.id));
+                        println!(
+                            "{}",
+                            ui::kv("next", format!("aegis missions run {}", &p.id[..8]))
+                        );
+                    }
+                    Err(e) => eprintln!("{}", ui::error_line(format!("{e:#}"))),
                 }
             } else {
-                eprintln!("usage: /missions [list|status <id>|new <goal>]");
+                eprintln!("{}", ui::note("/missions  list | status <id> | new <goal>"));
             }
             continue;
         }
         if line == "/yolo" {
             agent.permission = PermissionMode::Yolo;
             agent.config.yolo = true;
-            println!("yolo on");
+            println!("{}", ui::event("mode", "yolo"));
             continue;
         }
         if line == "/cost" {
             if let Ok(Some(s)) = store.get_session(&agent.session_id) {
+                println!("{}", ui::header("cost"));
+                println!("{}", ui::kv("session", &s.id[..8]));
+                println!("{}", ui::kv("in", s.total_input_tokens.to_string()));
+                println!("{}", ui::kv("out", s.total_output_tokens.to_string()));
                 println!(
-                    "session {}  in={}  out={}  total={}",
-                    &s.id[..8],
-                    s.total_input_tokens,
-                    s.total_output_tokens,
-                    s.total_input_tokens + s.total_output_tokens
+                    "{}",
+                    ui::kv(
+                        "total",
+                        (s.total_input_tokens + s.total_output_tokens).to_string()
+                    )
                 );
             }
             continue;
@@ -816,27 +932,27 @@ async fn repl(mut agent: AgentLoop, store: Arc<Store>) -> Result<()> {
                 )
                 .await
             {
-                Ok(_) => println!("(compacted)"),
-                Err(e) => eprintln!("compact error: {e:#}"),
+                Ok(_) => println!("{}", ui::event("compact", "ok")),
+                Err(e) => eprintln!("{}", ui::error_line(format!("{e:#}"))),
             }
             continue;
         }
         if line == "/clear" {
             agent.previous_response_id = None;
             let _ = store.set_previous_response_id(&agent.session_id, None);
-            println!("cleared server-side chain (local session id kept)");
+            println!("{}", ui::event("clear", "server chain reset"));
             continue;
         }
         if let Some(m) = line.strip_prefix("/model ") {
             agent.config.model = m.trim().to_string();
             agent.model_override = None;
-            println!("model = {}", agent.config.model);
+            println!("{}", ui::kv("model", &agent.config.model));
             continue;
         }
         if let Some(goal) = line.strip_prefix("/plan ") {
             match run_plan(&mut agent, goal).await {
                 Ok(p) => println!("{}", serde_json::to_string_pretty(&p)?),
-                Err(e) => eprintln!("plan error: {e:#}"),
+                Err(e) => eprintln!("{}", ui::error_line(format!("{e:#}"))),
             }
             continue;
         }
@@ -862,18 +978,21 @@ async fn repl(mut agent: AgentLoop, store: Arc<Store>) -> Result<()> {
             .await
             {
                 Ok(o) => println!("{o}"),
-                Err(e) => eprintln!("mission error: {e:#}"),
+                Err(e) => eprintln!("{}", ui::error_line(format!("{e:#}"))),
             }
             continue;
         }
         if line.starts_with('/') {
             eprintln!(
-                "unknown command — try /plan /mission /yolo /cost /compact /model /clear /quit"
+                "{}",
+                ui::note(
+                    "/plan /mission /missions /memory /yolo /cost /compact /model /clear /quit"
+                )
             );
             continue;
         }
         if let Err(e) = agent.run_turn(line).await {
-            eprintln!("{} {e:#}", style("error:").red());
+            eprintln!("{}", ui::error_line(format!("{e:#}")));
         }
         println!();
     }

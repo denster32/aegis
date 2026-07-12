@@ -15,6 +15,7 @@ mod prompts;
 mod qa;
 mod readiness_v2;
 mod review;
+pub mod ui;
 mod wiki;
 
 pub use agent::*;

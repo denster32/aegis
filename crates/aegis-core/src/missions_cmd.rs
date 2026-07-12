@@ -2,6 +2,7 @@
 
 use crate::agent::AgentLoop;
 use crate::prompts;
+use crate::ui;
 use aegis_swarm::{
     append_progress, assess_readiness, load_state, save_state, FeatureStatus, MissionGraph,
     MissionPlan, MissionStatus, TaskNode,
@@ -140,10 +141,10 @@ pub async fn missions_run(mut agent: AgentLoop, mission_id: &str) -> Result<Stri
         save_state(&agent.cwd, &state)?;
         plan.save(&agent.cwd)?;
         println!(
-            "{} feature {} — {}",
-            style("▶").yellow(),
-            style(&fid).bold(),
-            title
+            "\n{}  {}  {}",
+            ui::mark_active(),
+            style(&fid).white().bold(),
+            style(&title).dim()
         );
 
         let prompt = format!(
@@ -238,33 +239,46 @@ pub fn missions_status(cwd: &std::path::Path, id: Option<&str>) -> Result<String
         if list.is_empty() {
             return Ok("No missions yet. Run: aegis missions new \"…\"".into());
         }
-        let mut s = String::from("Missions:\n");
+        let mut s = String::new();
+        s.push_str(&ui::header("missions"));
+        s.push('\n');
+        if list.is_empty() {
+            s.push_str(&format!("  {}\n", style("none").dim()));
+        }
         for p in list {
             s.push_str(&format!(
-                "  {}  {:?}  {}\n",
-                &p.id[..8.min(p.id.len())],
-                p.status,
-                p.goal.chars().take(60).collect::<String>()
+                "  {}  {}  {}\n",
+                style(&p.id[..8.min(p.id.len())]).white(),
+                style(format!("{:?}", p.status)).dim(),
+                style(p.goal.chars().take(52).collect::<String>()).dim()
             ));
         }
+        s.push('\n');
         Ok(s)
     }
 }
 
 pub fn readiness_report(cwd: &std::path::Path) -> String {
     let r = assess_readiness(cwd);
-    let mut s = format!("Readiness: {} ({}/100)\n", r.level, r.score);
+    let mut s = String::new();
+    s.push_str(&ui::header("readiness"));
+    s.push_str(&format!(
+        "{}\n\n",
+        ui::kv("score", format!("{}  {}/100", r.level, r.score))
+    ));
     for c in r.checks {
-        let mark = if c.passed {
-            style("✓").green()
-        } else {
-            style("✗").red()
-        };
-        s.push_str(&format!("  {mark} {} — {}\n", c.name, c.detail));
+        s.push_str(&format!(
+            "  {}  {}  {}\n",
+            ui::mark_bool(c.passed),
+            style(&c.name).white(),
+            style(&c.detail).dim()
+        ));
     }
-    s.push_str(
-        "\nTip: Factory recommends high agent readiness before long Missions (tests + scriptable QA).\n",
-    );
+    s.push('\n');
+    s.push_str(&format!(
+        "  {}\n",
+        style("prefer high readiness before long missions").dim()
+    ));
     s
 }
 

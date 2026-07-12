@@ -113,21 +113,36 @@ stage = "document"
 }
 
 pub fn format_list(autos: &[Automation]) -> String {
+    use crate::ui;
+    use console::style;
+    let mut s = String::new();
+    s.push_str(&ui::header("automations"));
+    s.push('\n');
     if autos.is_empty() {
-        return "No automations. Run: aegis automation ensure\n".into();
-    }
-    let mut s = String::from("Automations:\n");
-    for a in autos {
         s.push_str(&format!(
-            "  {} {:<18} trigger={:<10} stage={:<10} {} {}\n",
-            if a.enabled { "●" } else { "○" },
+            "  {}\n  {}\n",
+            style("none").dim(),
+            style("aegis automation ensure").dim()
+        ));
+        return s;
+    }
+    for a in autos {
+        let mark = if a.enabled {
+            ui::mark_ok()
+        } else {
+            ui::mark_idle()
+        };
+        s.push_str(&format!(
+            "  {}  {:<16}  {}  {}  {} {}\n",
+            mark,
             a.name,
-            a.trigger,
-            a.stage,
-            a.command,
-            a.args.join(" ")
+            style(format!("t={}", a.trigger)).dim(),
+            style(format!("s={}", a.stage)).dim(),
+            style(&a.command).white(),
+            style(a.args.join(" ")).dim()
         ));
     }
+    s.push('\n');
     s
 }
 

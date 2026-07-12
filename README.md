@@ -66,6 +66,7 @@ aegis missions run <id>
 
 | Doc | Topic |
 |-----|--------|
+| [docs/features.md](docs/features.md) | Feature matrix (verified) |
 | [docs/architecture.md](docs/architecture.md) | Crate layout |
 | [docs/auth.md](docs/auth.md) | OAuth / API key precedence |
 | [docs/xai-capabilities.md](docs/xai-capabilities.md) | Grok 4.5 feature matrix |
@@ -78,6 +79,10 @@ aegis missions run <id>
 | [docs/automations.md](docs/automations.md) | File-based automations |
 | [docs/stress.md](docs/stress.md) | Stress harness |
 | [docs/wiki/Home.md](docs/wiki/Home.md) | In-repo wiki home |
+
+## Terminal UI
+
+Monochrome **SpaceX / xAI** language: white primary, dim secondary, thin rules, geometric marks (`● · ▸ ×`). No rainbow chrome.
 
 ## Learning
 

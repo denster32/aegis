@@ -105,17 +105,32 @@ pub fn factory_status(root: &Path) -> FactoryStatus {
 }
 
 pub fn format_factory(s: &FactoryStatus) -> String {
-    let mut out = String::from("Software Factory — SDLC coverage\n\n");
+    use crate::ui;
+    let mut out = String::new();
+    out.push_str(&ui::header("factory"));
+    out.push('\n');
     for st in &s.stages {
+        let mark = if st.healthy {
+            ui::mark_ok()
+        } else {
+            ui::mark_idle()
+        };
         out.push_str(&format!(
-            "  {} {:<10}  [{:^12}]  {}\n",
-            if st.healthy { "✓" } else { "·" },
+            "  {}  {:<10}  {}  {}\n",
+            mark,
             st.name,
-            st.coverage,
-            st.detail
+            console::style(format!("[{}]", st.coverage)).dim(),
+            console::style(&st.detail).dim()
         ));
     }
-    out.push_str("\nTip: aegis install-qa · install-code-review · dream install · wiki generate\n");
+    out.push('\n');
+    out.push_str(&ui::rule());
+    out.push('\n');
+    out.push_str(&format!(
+        "  {}\n",
+        console::style("aegis install-qa · install-code-review · dream install · wiki generate")
+            .dim()
+    ));
     out
 }
 

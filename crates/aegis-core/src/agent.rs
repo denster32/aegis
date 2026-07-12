@@ -8,7 +8,6 @@ use aegis_xai::{
     ReasoningConfig, ResponsesClient, TextConfig, TextFormat, ToolChoice, ToolDef, ToolSpec,
 };
 use anyhow::{Context, Result};
-use console::style;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
@@ -314,7 +313,7 @@ impl AgentLoop {
                 let cwd_for_hooks = self.cwd.clone();
                 join_set.spawn(async move {
                     let _permit = sem.acquire().await.ok();
-                    let msg = format!("{} {}\n", style("→").cyan(), style(&name).bold());
+                    let msg = format!("{}\n", crate::ui::tool_call(&name));
                     if let Some(f) = &emit {
                         f(&msg);
                     } else {
@@ -393,7 +392,7 @@ impl AgentLoop {
                 } else {
                     output.clone()
                 };
-                self.emit(&format!("{} {}\n", style("←").green(), style(&name).dim()));
+                self.emit(&format!("{}\n", crate::ui::tool_done(&name)));
                 debug!(%preview, "tool output preview");
                 input.push(InputItem::FunctionCallOutput(FunctionCallOutput::new(
                     call_id, output,
@@ -437,18 +436,23 @@ impl AgentLoop {
             let r = learn.reflect(&client, &model).await?;
             if !r.wins.is_empty() || !r.new_lessons.is_empty() {
                 self.emit(&format!(
-                    "{} learned {} lesson(s), {} win(s)\n",
-                    style("◆").magenta(),
-                    r.new_lessons.len(),
-                    r.wins.len()
+                    "{}\n",
+                    crate::ui::event(
+                        "learn",
+                        format!(
+                            "{} lesson(s) · {} win(s)",
+                            r.new_lessons.len(),
+                            r.wins.len()
+                        )
+                    )
                 ));
             }
             if let Some(sug) = r.agents_md_suggestion {
                 if !sug.is_empty() {
                     self.emit(&format!(
-                        "{} AGENTS.md suggestion:\n{}\n",
-                        style("◆").dim(),
-                        sug
+                        "{}\n{}\n",
+                        crate::ui::label("agents.md"),
+                        crate::ui::note(sug)
                     ));
                 }
             }

@@ -264,62 +264,68 @@ impl MissionPlan {
         Ok(out)
     }
 
-    /// ASCII Mission Control board.
+    /// Mission Control board — minimal monochrome (SpaceX / xAI).
     pub fn control_board(&self, state: &MissionState) -> String {
+        let w = 56;
+        let rule = "─".repeat(w);
         let mut s = String::new();
-        s.push_str("╔══════════════════════════════════════════════╗\n");
+        s.push_str("MISSION CONTROL\n");
+        s.push_str(&rule);
+        s.push('\n');
         s.push_str(&format!(
-            "║  MISSION CONTROL  {}  ║\n",
+            "  id          {}\n",
             &self.id[..8.min(self.id.len())]
         ));
-        s.push_str("╠══════════════════════════════════════════════╣\n");
+        s.push_str(&format!("  status      {:?}\n", self.status));
+        s.push_str(&format!("  goal        {}\n", truncate(&self.goal, 42)));
         s.push_str(&format!(
-            "║ status: {:<36} ║\n",
-            format!("{:?}", self.status)
+            "  milestone   {}\n",
+            state.current_milestone.as_deref().unwrap_or("—")
         ));
-        s.push_str(&format!("║ goal: {:<38} ║\n", truncate(&self.goal, 38)));
-        s.push_str(&format!(
-            "║ milestone: {:<33} ║\n",
-            state.current_milestone.as_deref().unwrap_or("-")
-        ));
-        s.push_str("╠══════════════════════════════════════════════╣\n");
-        s.push_str("║ MILESTONES                                   ║\n");
+        s.push_str(&rule);
+        s.push('\n');
+        s.push_str("MILESTONES\n");
         let mut miles = self.milestones.clone();
         miles.sort_by_key(|m| m.order);
         for m in &miles {
             let mark = match m.status {
-                FeatureStatus::Done => "✓",
-                FeatureStatus::InProgress => "▶",
-                FeatureStatus::Blocked => "✗",
+                FeatureStatus::Done => "●",
+                FeatureStatus::InProgress => "▸",
+                FeatureStatus::Blocked => "×",
                 _ => "·",
             };
             s.push_str(&format!(
-                "║  {mark} [{:>2}] {:<36} ║\n",
+                "  {}  {:>2}  {}\n",
+                mark,
                 m.order,
-                truncate(&m.title, 36)
+                truncate(&m.title, 40)
             ));
         }
-        s.push_str("╠══════════════════════════════════════════════╣\n");
-        s.push_str("║ FEATURES                                     ║\n");
+        s.push_str(&rule);
+        s.push('\n');
+        s.push_str("FEATURES\n");
         for f in &self.features {
             let mark = match f.status {
-                FeatureStatus::Done => "✓",
-                FeatureStatus::InProgress => "▶",
-                FeatureStatus::Blocked => "✗",
+                FeatureStatus::Done => "●",
+                FeatureStatus::InProgress => "▸",
+                FeatureStatus::Blocked => "×",
                 FeatureStatus::Skipped => "–",
                 FeatureStatus::Pending => "·",
             };
             s.push_str(&format!(
-                "║  {mark} {:<8} {:<30} ║\n",
-                truncate(&f.id, 8),
-                truncate(&f.title, 30)
+                "  {}  {:<10}  {}\n",
+                mark,
+                truncate(&f.id, 10),
+                truncate(&f.title, 36)
             ));
         }
         if let Some(ref br) = state.blocked_reason {
-            s.push_str("╠══════════════════════════════════════════════╣\n");
-            s.push_str(&format!("║ blocked: {:<35} ║\n", truncate(br, 35)));
+            s.push_str(&rule);
+            s.push('\n');
+            s.push_str(&format!("  blocked     {}\n", truncate(br, 42)));
         }
-        s.push_str("╚══════════════════════════════════════════════╝\n");
+        s.push_str(&rule);
+        s.push('\n');
         s
     }
 

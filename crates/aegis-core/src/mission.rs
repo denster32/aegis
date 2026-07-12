@@ -1,5 +1,6 @@
 use crate::agent::AgentLoop;
 use crate::prompts;
+use crate::ui;
 use aegis_swarm::{MissionGraph, SwarmScheduler, ValidationReport};
 use aegis_tools::PermissionMode;
 use anyhow::{Context, Result};
@@ -25,10 +26,11 @@ impl Default for MissionOptions {
 
 /// Full mission: plan DAG → parallel workers → validate.
 pub async fn run_mission(mut boss: AgentLoop, goal: &str, opts: MissionOptions) -> Result<String> {
+    println!("{}", ui::header("mission"));
     println!(
-        "{} planning mission DAG with {}…",
-        style("◆").magenta(),
-        style(boss.config.model.clone()).cyan()
+        "{}\n{}",
+        ui::kv("phase", "plan"),
+        ui::kv("model", &boss.config.model)
     );
 
     let graph_json = boss
@@ -45,21 +47,26 @@ pub async fn run_mission(mut boss: AgentLoop, goal: &str, opts: MissionOptions) 
         .with_context(|| format!("parse mission graph: {graph_json}"))?;
     graph.validate().context("invalid mission graph")?;
 
-    println!(
-        "{} goal: {}\n{} tasks:",
-        style("◆").magenta(),
-        graph.goal,
-        graph.tasks.len()
-    );
+    println!();
+    println!("{}", ui::kv("goal", &graph.goal));
+    println!("{}", ui::kv("tasks", graph.tasks.len().to_string()));
+    println!("{}", ui::rule());
     for t in &graph.tasks {
         println!(
-            "  • {} — {} (deps: {:?}, reasoning: {})",
-            style(&t.id).bold(),
-            t.title,
-            t.depends_on,
-            t.needs_reasoning
+            "  {}  {}  {}",
+            ui::mark_idle(),
+            style(&t.id).white().bold(),
+            style(&t.title).dim()
         );
+        if !t.depends_on.is_empty() {
+            println!(
+                "      {}  deps {}",
+                style("·").dim(),
+                style(format!("{:?}", t.depends_on)).dim()
+            );
+        }
     }
+    println!();
 
     if !opts.auto_approve_graph {
         if let Some(ask) = &boss.ask_fn {
@@ -108,10 +115,10 @@ pub async fn run_mission(mut boss: AgentLoop, goal: &str, opts: MissionOptions) 
             let mission_goal = mission_goal.clone();
             Box::pin(async move {
                 println!(
-                    "\n{} worker task {} — {}",
-                    style("▶").yellow(),
-                    style(&node.id).bold(),
-                    node.title
+                    "\n{}  {}  {}",
+                    ui::mark_active(),
+                    style(&node.id).white().bold(),
+                    style(&node.title).dim()
                 );
 
                 // Collect notes for context
@@ -181,9 +188,9 @@ pub async fn run_mission(mut boss: AgentLoop, goal: &str, opts: MissionOptions) 
     let mut last_report = String::new();
     for attempt in 0..=opts.max_validate_retries {
         println!(
-            "\n{} validation pass {}…",
-            style("◆").magenta(),
-            attempt + 1
+            "\n{}\n{}",
+            ui::label("validate"),
+            ui::kv("pass", (attempt + 1).to_string())
         );
         let tasks = store.list_tasks(&mission_id)?;
         let summaries = tasks
@@ -210,28 +217,30 @@ pub async fn run_mission(mut boss: AgentLoop, goal: &str, opts: MissionOptions) 
 
         if let Some(report) = extract_json::<ValidationReport>(&text) {
             println!(
-                "{} validation passed={}",
-                style("◆").magenta(),
-                report.passed
+                "{}",
+                ui::kv("result", if report.passed { "pass" } else { "fail" })
             );
             for c in &report.checks {
-                let mark = if c.passed {
-                    style("✓").green()
-                } else {
-                    style("✗").red()
-                };
-                println!("  {mark} {} — {}", c.name, c.detail);
+                println!(
+                    "  {}  {}  {}",
+                    ui::mark_bool(c.passed),
+                    style(&c.name).white(),
+                    style(&c.detail).dim()
+                );
             }
             if report.passed {
                 store.update_mission_status(&mission_id, "validated")?;
                 return Ok(format!(
-                    "Mission complete.\nGoal: {}\nValidation: passed\n{}",
-                    graph.goal, text
+                    "{}\n{}\n{}\n{}",
+                    ui::header("mission complete"),
+                    ui::kv("goal", &graph.goal),
+                    ui::kv("validation", "pass"),
+                    text
                 ));
             }
             if attempt < opts.max_validate_retries && !report.next_actions.is_empty() {
                 let fix = report.next_actions.join("\n- ");
-                println!("{} applying fix actions…", style("◆").yellow());
+                println!("{}", ui::event("heal", "applying fix actions"));
                 let _ = boss
                     .run_turn(&format!(
                         "Validation failed. Fix these issues:\n- {fix}\nThen stop."

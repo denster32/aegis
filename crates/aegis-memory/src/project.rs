@@ -203,22 +203,30 @@ impl ProjectMemory {
         let failures = self.load_failures()?.len();
         let skills = self.list_skills()?.len();
         let mem_len = self.read_memory_md()?.len();
+        let last = self
+            .metrics
+            .last_run_at
+            .clone()
+            .unwrap_or_else(|| "—".into());
+        // Monochrome key/value layout (SpaceX / xAI).
         Ok(format!(
-            "project: {}\n\
-             .aegis: {}\n\
-             runs: {}\n\
-             lessons: {lessons}\n\
-             failures: {failures}\n\
-             skills: {skills}\n\
-             MEMORY.md: {mem_len} bytes\n\
-             heal: {}/{} success\n\
-             last_run: {:?}",
+            "MEMORY\n\
+             ────────────────────────────────────────────────────────\n\
+               project        {}\n\
+               store          {}\n\
+               runs           {}\n\
+               lessons        {lessons}\n\
+               failures       {failures}\n\
+               skills         {skills}\n\
+               memory.md      {mem_len} B\n\
+               heal           {}/{}\n\
+               last_run       {last}\n\
+             ────────────────────────────────────────────────────────\n",
             self.paths.root.display(),
             self.paths.aegis_dir.display(),
             self.metrics.run_count,
             self.metrics.heal_successes,
             self.metrics.heal_attempts,
-            self.metrics.last_run_at
         ))
     }
 
