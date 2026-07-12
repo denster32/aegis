@@ -1,43 +1,57 @@
 # Aegis Wiki
 
-**Aegis** is a sovereign Grok-native coding agent written in Rust — tools, Missions, project learning, and **Nexus** (evolve · spore · compress · hardware).
+**Sovereign Grok-native coding agent** — Rust · tools · Missions · project learning.
 
-**Version:** 0.8.0 · **Repo:** [https://github.com/denster32/aegis](https://github.com/denster32/aegis)
+| | |
+|---|---|
+| Version | 0.8.0 |
+| Stack | Rust 1.96+ (Cargo workspace) |
+| License | MIT |
+| UI | Monochrome terminal |
 
-## Start here
+## Why Aegis
 
-- [Commands](Commands.md) — full CLI map
-- [Architecture](Architecture.md) — crate layout
-- [Modules](Modules.md) — module notes
-- [Nexus](Nexus.md) — living immune system
-- [Conventions](Conventions.md) — project norms
+| Capability | Detail |
+|------------|--------|
+| **Grok OAuth** | Reuses `grok login` / `~/.grok/auth.json` |
+| **Grok 4.5** | `reasoning.effort` · `prompt_cache_key` · server tools |
+| **Tools** | read / write / edit / bash / glob / grep / git / web / memory / vision |
+| **Learning** | Self-heal mid-run · reflect · `.aegis/` memory |
+| **Missions** | Plan → Mission Control → execute → validate |
+| **Platform** | Dream · readiness · factory · wiki · QA · review · automations |
+| **Nexus** | Evolve · spore · compress · hardware · capability map |
+| **Binary** | ~16 MB Rust CLI · ~2 ms cold start · no Node runtime |
+
+## Wiki pages
+
+- [Architecture](Architecture.md) — crates, runtime flow, binary profile
+- [Modules](Modules.md) — core platform and Nexus modules
+- [Commands](Commands.md) — CLI, flags, smoke/stress
+- [Nexus](Nexus.md) — evolve · spore · compress · hardware
+- [Conventions](Conventions.md) — workspace norms, docs, readiness
+
+## Install
+
+```bash
+git clone https://github.com/denster32/aegis.git
+cd aegis
+./install.sh
+aegis --version
+grok login   # or: aegis login
+aegis auth status
+```
 
 ## Quick start
 
 ```bash
-git clone https://github.com/denster32/aegis.git
-cd aegis && ./install.sh
-grok login          # or: aegis login
-aegis auth status
 aegis -p "Reply with exactly: pong"
-aegis nexus status
+aegis --yolo --effort low -p "Create hello.txt with hi"
+aegis readiness
+aegis factory
+aegis missions new "add a /health endpoint"
+aegis missions run <id>
 ```
 
-## Flags
+## In-repo docs
 
-`--effort low|medium|high` · `--yolo` · `--sandbox` · `--cwd` · `--session` · `--no-learn` · `--stream` · `-v` · `-m`
-
-## Deep docs (main branch)
-
-| Topic | Link |
-|-------|------|
-| Features | [https://github.com/denster32/aegis/blob/main/docs/features.md](https://github.com/denster32/aegis/blob/main/docs/features.md) |
-| Nexus | [https://github.com/denster32/aegis/blob/main/docs/nexus.md](https://github.com/denster32/aegis/blob/main/docs/nexus.md) |
-| Auth | [https://github.com/denster32/aegis/blob/main/docs/auth.md](https://github.com/denster32/aegis/blob/main/docs/auth.md) |
-| Grok 4.5 | [https://github.com/denster32/aegis/blob/main/docs/xai-capabilities.md](https://github.com/denster32/aegis/blob/main/docs/xai-capabilities.md) |
-| Learning | [https://github.com/denster32/aegis/blob/main/docs/learning.md](https://github.com/denster32/aegis/blob/main/docs/learning.md) |
-| Missions | [https://github.com/denster32/aegis/blob/main/docs/missions.md](https://github.com/denster32/aegis/blob/main/docs/missions.md) |
-| Stress | [https://github.com/denster32/aegis/blob/main/docs/stress.md](https://github.com/denster32/aegis/blob/main/docs/stress.md) |
-| Release | [https://github.com/denster32/aegis/blob/main/docs/RELEASE.md](https://github.com/denster32/aegis/blob/main/docs/RELEASE.md) |
-| Security | [https://github.com/denster32/aegis/blob/main/SECURITY.md](https://github.com/denster32/aegis/blob/main/SECURITY.md) |
-| Changelog | [https://github.com/denster32/aegis/blob/main/CHANGELOG.md](https://github.com/denster32/aegis/blob/main/CHANGELOG.md) |
+Feature matrix, Nexus, learning, missions, stress, release, and security live under `docs/` and `SECURITY.md`. This wiki is sourced from `docs/wiki/` and synced to the GitHub Wiki.

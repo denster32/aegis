@@ -1,46 +1,64 @@
 # Architecture
 
-Aegis is a **Cargo workspace**: thin CLI + library crates. Nexus extends the core with evolution, spores, and hardware probes.
+Aegis is a **Rust Cargo workspace**: a thin CLI binary plus library crates that implement the agent, tools, learning, and platform features.
+
+See also [Home](Home.md), [Modules](Modules.md), [Commands](Commands.md).
+
+## High-level layout
 
 ```
-aegis → core (agent, learn, missions, platform)
-     → auth · xai · tools · memory · swarm · mcp · store · context
-     → evolution · spore · hardware
+aegis (CLI)
+  ├── aegis-core         agent · missions · dream · factory · ui
+  ├── aegis-auth         Grok OAuth
+  ├── aegis-xai          Responses API
+  ├── aegis-tools        coding tools + locks + capability map
+  ├── aegis-memory       .aegis/ learning · neural summary
+  ├── aegis-swarm        DAG + Mission Control
+  ├── aegis-evolution    mutation genes + fitness
+  ├── aegis-spore        viral pack / vaccinate
+  ├── aegis-hardware     host probe + throttle policy
+  ├── aegis-context      workspace pack
+  ├── aegis-store        SQLite sessions
+  └── aegis-mcp          optional MCP
 ```
 
-## Crates
+## Workspace crates
 
 | Crate | Role |
 |-------|------|
-| `aegis` | CLI entrypoint |
-| `aegis-core` | Agent loop, learning, Missions, dream/factory/QA/wiki/UI |
-| `aegis-auth` | Grok OAuth |
-| `aegis-xai` | Responses API |
-| `aegis-tools` | Local tools + sandbox membrane + capability map |
-| `aegis-memory` | Project memory + neural summary |
-| `aegis-swarm` | DAG + Mission Control |
-| `aegis-evolution` | Mutation genes + fitness |
-| `aegis-spore` | Viral pack / vaccinate |
-| `aegis-hardware` | Host probe + throttle policy |
-| `aegis-context` | Workspace pack |
-| `aegis-store` | SQLite sessions |
-| `aegis-mcp` | Optional MCP |
+| `crates/aegis` | CLI entrypoint (`aegis` binary) |
+| `crates/aegis-core` | Agent loop, Missions, Dream, factory, QA, readiness, review, wiki, automations, TUI |
+| `aegis-auth` | Reuses `grok login` / `~/.grok/auth.json` |
+| `aegis-xai` | Grok 4.5 Responses API (`reasoning.effort`, `prompt_cache_key`, server tools) |
+| `aegis-tools` | read / write / edit / bash / glob / grep / git / web / memory / vision |
+| `aegis-memory` | Project learning under `.aegis/` |
+| `aegis-swarm` | Mission DAG + Mission Control |
+| `aegis-evolution` | Evolve genes + fitness |
+| `aegis-spore` | Spore pack / vaccinate |
+| `aegis-hardware` | Host probe + throttle |
+| `aegis-context` | Workspace context pack |
+| `aegis-store` | SQLite session store |
+| `aegis-mcp` | Optional MCP integration |
 
-## Data flow
+## Runtime flow
 
-1. **CLI** parses flags (`-p`, `--yolo`, `--sandbox`, `--effort`, …) and routes to core / Nexus.
-2. **Auth** reuses Grok OAuth (`grok login` / `~/.grok/auth.json`).
-3. **Agent** calls **xAI** with tools (read/write/edit, bash, glob, grep, git, web, memory).
-4. **Learning** updates `.aegis/` mid-run (self-heal) and after-run (reflect / compress).
-5. **Missions / Swarm** plan → Mission Control → DAG workers → validate → reflect.
-6. **Nexus** mutates (evolve), packs spores, probes host, injects neural summary.
+1. **CLI** parses flags (`--effort`, `--yolo`, `--sandbox`, `--cwd`, `--session`, …) and routes subcommands.
+2. **Auth** loads Grok OAuth credentials.
+3. **Agent loop** (core) calls **xAI** with tools from **aegis-tools**.
+4. **Memory** reads/writes durable lessons in `.aegis/`; optional self-heal mid-run.
+5. **Missions / swarm** plan → Mission Control → execute → validate.
+6. **Platform** surfaces (readiness, factory, dream, wiki, QA, review, automations) live as modules under `aegis-core`.
+7. **Nexus** layers (evolve, spore, compress, hardware, capability map) extend the organism model.
 
-## Platform modules
+## Binary profile
 
-Under `crates/aegis-core/src/`: dream, factory, qa, readiness_v2, review, wiki, automations, ui.
+- ~16 MB Rust CLI, ~2 ms cold start, no Node runtime
+- Monochrome TUI (SpaceX / xAI style)
 
-## Project memory
+## Related docs in-repo
 
-Per-project state in `.aegis/` (MEMORY, LESSONS, FAILURES, SKILLS, missions, dreams, nexus/).
-
-See [docs/architecture.md](https://github.com/denster32/aegis/blob/main/docs/architecture.md) · [Nexus](Nexus.md).
+- `docs/architecture.md` — crate detail
+- `docs/nexus.md` — living immune system
+- `docs/learning.md` — memory & heal
+- `docs/missions.md` — Factory Missions
+- `SECURITY.md` — threat model
