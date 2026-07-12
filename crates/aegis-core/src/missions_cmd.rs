@@ -1,7 +1,6 @@
 //! Factory-style Missions orchestration.
 
 use crate::agent::AgentLoop;
-use crate::prompts;
 use crate::ui;
 use aegis_swarm::{
     append_progress, assess_readiness, load_state, save_state, FeatureStatus, MissionGraph,
@@ -10,7 +9,6 @@ use aegis_swarm::{
 use anyhow::{Context, Result};
 use chrono::Utc;
 use console::style;
-use std::sync::Arc;
 
 /// Collaborative / one-shot mission plan generation.
 pub async fn missions_new(agent: &mut AgentLoop, goal: &str, oneshot: bool) -> Result<MissionPlan> {
@@ -280,11 +278,4 @@ pub fn readiness_report(cwd: &std::path::Path) -> String {
         style("prefer high readiness before long missions").dim()
     ));
     s
-}
-
-// silence
-#[allow(dead_code)]
-fn _p() {
-    let _ = prompts::system_prompt(".");
-    let _ = Arc::new(());
 }

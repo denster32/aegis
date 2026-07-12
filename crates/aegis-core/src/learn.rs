@@ -129,8 +129,16 @@ impl LearnRuntime {
             return Ok(RunReflection::default());
         }
         let summary = self.transcript.join("\n");
-        let summary = if summary.len() > 12_000 {
-            format!("…{}", &summary[summary.len() - 12_000..])
+        let summary = if summary.chars().count() > 12_000 {
+            let tail: String = summary
+                .chars()
+                .rev()
+                .take(12_000)
+                .collect::<String>()
+                .chars()
+                .rev()
+                .collect();
+            format!("…{tail}")
         } else {
             summary
         };
@@ -161,10 +169,7 @@ impl LearnRuntime {
                 },
             }),
             include: None,
-            // Reflection uses boss model (grok-4.5); omit if ever pointed at code-fast.
-            reasoning: if model.to_ascii_lowercase().contains("grok-4")
-                || model.to_ascii_lowercase().contains("grok-3")
-            {
+            reasoning: if crate::model_supports_reasoning(model) {
                 Some(aegis_xai::ReasoningConfig::high())
             } else {
                 None
@@ -251,11 +256,7 @@ impl LearnRuntime {
 }
 
 fn truncate(s: &str, n: usize) -> String {
-    if s.len() <= n {
-        s.to_string()
-    } else {
-        format!("{}…", &s[..n])
-    }
+    crate::utf8_truncate(s, n)
 }
 
 fn extract_json(text: &str) -> Option<String> {

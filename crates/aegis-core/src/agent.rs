@@ -122,12 +122,8 @@ impl AgentLoop {
 
     /// Whether this model accepts Responses `reasoning.effort` (grok-4.5 family).
     /// Worker models like `grok-code-fast-1` return 400 if reasoning is sent.
-    fn model_supports_reasoning(model: &str) -> bool {
-        let m = model.to_ascii_lowercase();
-        m.contains("grok-4")
-            || m.contains("grok4")
-            || m.contains("reasoning")
-            || m.starts_with("grok-3")
+    pub fn model_supports_reasoning(model: &str) -> bool {
+        crate::model_supports_reasoning(model)
     }
 
     fn reasoning_for_step(&self, step: usize, had_tools_last: bool) -> Option<ReasoningConfig> {
@@ -205,7 +201,8 @@ impl AgentLoop {
                 tools: Some(self.tool_specs()),
                 tool_choice: Some(ToolChoice::auto()),
                 previous_response_id: self.previous_response_id.clone(),
-                store: Some(self.config.store_server_side),
+                // Tool loops require server-side store so previous_response_id chains.
+                store: Some(true),
                 stream: Some(false),
                 temperature: None,
                 max_output_tokens: None,
@@ -343,12 +340,8 @@ impl AgentLoop {
                     } else {
                         format!("ERROR: {}", result.output)
                     };
-                    let truncated = if out.len() > 80_000 {
-                        format!(
-                            "{}…\n[truncated {} chars]",
-                            &out[..80_000],
-                            out.len() - 80_000
-                        )
+                    let truncated = if out.chars().count() > 80_000 {
+                        format!("{}\n[truncated]", crate::utf8_truncate(&out, 80_000))
                     } else {
                         out
                     };
@@ -365,7 +358,6 @@ impl AgentLoop {
             // Next request: only tool outputs + previous_response_id (stateful API)
             input.clear();
             let mut heal_notes: Vec<String> = Vec::new();
-            let mut any_ok_after_err = false;
             while let Some(joined) = join_set.join_next().await {
                 let (call_id, name, output, ok) = joined.context("tool join")?;
                 info!(%name, len = output.len(), ok, "tool done");
@@ -373,42 +365,20 @@ impl AgentLoop {
                 if let Some(learn) = self.learn.as_mut() {
                     learn.note(format!(
                         "TOOL {name}: {}",
-                        if output.len() > 300 {
-                            format!("{}…", &output[..300])
-                        } else {
-                            output.clone()
-                        }
+                        crate::utf8_truncate(&output, 300)
                     ));
                     if is_err {
                         if let Some(heal) = learn.on_tool_error(&name, &output) {
                             heal_notes.push(heal);
                         }
-                    } else {
-                        any_ok_after_err = true;
                     }
                 }
-                let preview = if output.len() > 200 {
-                    format!("{}…", &output[..200])
-                } else {
-                    output.clone()
-                };
+                let preview = crate::utf8_truncate(&output, 200);
                 self.emit(&format!("{}\n", crate::ui::tool_done(&name)));
                 debug!(%preview, "tool output preview");
                 input.push(InputItem::FunctionCallOutput(FunctionCallOutput::new(
                     call_id, output,
                 )));
-            }
-            // If we had heal notes and also successes, credit heal soft success
-            if any_ok_after_err {
-                if let Some(learn) = self.learn.as_mut() {
-                    if learn.memory.metrics.heal_attempts > learn.memory.metrics.heal_successes {
-                        learn.record_successful_heal(
-                            "session",
-                            "tool error recovered in subsequent call",
-                            "agent retried and succeeded",
-                        );
-                    }
-                }
             }
             // Inject self-heal guidance as a synthetic user note for next model step
             if !heal_notes.is_empty() {
@@ -569,9 +539,5 @@ fn extract_json_object(text: &str) -> Option<String> {
 }
 
 fn truncate_str(s: &str, n: usize) -> String {
-    if s.len() <= n {
-        s.to_string()
-    } else {
-        format!("{}…", &s[..n])
-    }
+    crate::utf8_truncate(s, n)
 }

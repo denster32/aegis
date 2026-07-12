@@ -7,9 +7,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --workspace
-        continue-on-error: true
+      - name: unit tests
+        run: cargo test --workspace
+      - name: install aegis
+        run: cargo install --path crates/aegis --force
+      - name: install qa skills
+        run: aegis install-qa
       - name: Aegis QA
         env:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
-        run: aegis qa || true
+        run: |
+          if [ -z "$XAI_API_KEY" ]; then
+            echo "XAI_API_KEY secret not set — skipping live QA"
+            exit 0
+          fi
+          aegis qa

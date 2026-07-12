@@ -38,9 +38,18 @@ pub fn create(root: &Path, label: &str) -> Result<Checkpoint> {
     if !status.trim().is_empty() {
         let msg = format!("aegis-checkpoint-{id}-{label}");
         if run_git_status(root, &["stash", "push", "-u", "-m", &msg]).unwrap_or(false) {
-            if let Ok(list) = run_git(root, &["stash", "list"]) {
-                if let Some(line) = list.lines().find(|l| l.contains(&msg)) {
-                    stash_ref = line.split(':').next().map(|s| s.trim().to_string());
+            // Prefer immutable stash commit SHA over drifting stash@{N} indices.
+            if let Ok(sha) = run_git(root, &["rev-parse", "stash@{0}"]) {
+                let sha = sha.trim().to_string();
+                if !sha.is_empty() {
+                    stash_ref = Some(sha);
+                }
+            }
+            if stash_ref.is_none() {
+                if let Ok(list) = run_git(root, &["stash", "list"]) {
+                    if let Some(line) = list.lines().find(|l| l.contains(&msg)) {
+                        stash_ref = line.split(':').next().map(|s| s.trim().to_string());
+                    }
                 }
             }
             // restore working tree
@@ -82,19 +91,36 @@ pub fn list(root: &Path) -> Result<Vec<Checkpoint>> {
 
 pub fn restore(root: &Path, id: &str) -> Result<String> {
     let list = list(root)?;
-    let cp = list
+    let matches: Vec<_> = list
         .into_iter()
-        .find(|c| c.id == id || c.id.starts_with(id))
-        .context("checkpoint not found")?;
+        .filter(|c| c.id == id || c.id.starts_with(id))
+        .collect();
+    let cp = match matches.len() {
+        0 => bail!("checkpoint not found"),
+        1 => matches.into_iter().next().unwrap(),
+        _ => bail!(
+            "ambiguous checkpoint id {id:?}; use full id (matches: {})",
+            matches
+                .iter()
+                .map(|c| c.id.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+    };
     if let Some(ref stash) = cp.stash_ref {
+        // Accept SHA or stash@{N} ref stored at create time.
         if run_git_status(root, &["stash", "apply", stash]).unwrap_or(false) {
-            return Ok(format!("restored stash {stash} from checkpoint {}", cp.id));
+            return Ok(format!(
+                "restored stash {} from checkpoint {} (best-effort re-apply; not a hard reset)",
+                &stash[..8.min(stash.len())],
+                cp.id
+            ));
         }
         bail!("stash apply failed for {stash}");
     }
     if let Some(ref commit) = cp.commit {
         return Ok(format!(
-            "checkpoint {} recorded clean/HEAD {commit}; no stash to apply",
+            "checkpoint {} recorded clean/HEAD {commit}; no stash to apply (no hard reset)",
             cp.id
         ));
     }

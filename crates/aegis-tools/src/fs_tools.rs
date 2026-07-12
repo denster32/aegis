@@ -33,6 +33,11 @@ impl Tool for ReadFileTool {
             Some(p) => ctx.resolve_path(p),
             None => return ToolResult::err("missing path"),
         };
+        if !ctx.is_within_cwd(&path)
+            && !ctx.approve(&format!("read outside cwd: {}", path.display()))
+        {
+            return ToolResult::err("permission denied: read outside workspace");
+        }
         let offset = args.get("offset").and_then(|v| v.as_u64()).unwrap_or(1) as usize;
         let limit = args
             .get("limit")

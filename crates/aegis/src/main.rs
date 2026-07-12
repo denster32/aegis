@@ -10,7 +10,7 @@ use aegis_core::{
 };
 use aegis_memory::ProjectMemory;
 use aegis_store::{AegisPaths, Store};
-use aegis_tools::{default_registry, PermissionMode, ToolRegistry};
+use aegis_tools::{default_registry, PermissionMode};
 use aegis_xai::{ResponsesClient, TokenSource as XaiTokenSource};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -641,10 +641,8 @@ async fn main() -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&plan)?);
             println!("{}", ui::rule());
             println!("{}", ui::kv("saved", &plan.id));
-            println!(
-                "{}",
-                ui::kv("next", format!("aegis missions run {}", &plan.id[..8]))
-            );
+            let short = &plan.id[..8.min(plan.id.len())];
+            println!("{}", ui::kv("next", format!("aegis missions run {short}")));
         }
         Some(Commands::Missions {
             action: MissionsCmd::Run { id },
@@ -847,7 +845,7 @@ async fn repl(mut agent: AgentLoop, store: Arc<Store>) -> Result<()> {
         "{}",
         ui::repl_banner(
             env!("CARGO_PKG_VERSION"),
-            &agent.session_id[..8],
+            &agent.session_id[..8.min(agent.session_id.len())],
             &agent.config.model,
             agent.config.reasoning_effort.as_str(),
             &agent.cwd.display().to_string(),
@@ -893,7 +891,10 @@ async fn repl(mut agent: AgentLoop, store: Arc<Store>) -> Result<()> {
                         println!("{}", ui::kv("saved", &p.id));
                         println!(
                             "{}",
-                            ui::kv("next", format!("aegis missions run {}", &p.id[..8]))
+                            ui::kv(
+                                "next",
+                                format!("aegis missions run {}", &p.id[..8.min(p.id.len())])
+                            )
                         );
                     }
                     Err(e) => eprintln!("{}", ui::error_line(format!("{e:#}"))),
@@ -912,7 +913,7 @@ async fn repl(mut agent: AgentLoop, store: Arc<Store>) -> Result<()> {
         if line == "/cost" {
             if let Ok(Some(s)) = store.get_session(&agent.session_id) {
                 println!("{}", ui::header("cost"));
-                println!("{}", ui::kv("session", &s.id[..8]));
+                println!("{}", ui::kv("session", &s.id[..8.min(s.id.len())]));
                 println!("{}", ui::kv("in", s.total_input_tokens.to_string()));
                 println!("{}", ui::kv("out", s.total_output_tokens.to_string()));
                 println!(
@@ -1012,13 +1013,12 @@ fn init_tracing(verbose: bool) {
 }
 
 fn truncate(s: &str, n: usize) -> String {
-    if s.len() <= n {
+    let count = s.chars().count();
+    if count <= n {
         s.to_string()
     } else {
-        format!("{}…", &s[..n])
+        let mut t: String = s.chars().take(n.saturating_sub(1)).collect();
+        t.push('…');
+        t
     }
 }
-
-// silence unused import warning if ToolRegistry only used via default
-#[allow(dead_code)]
-fn _tr(_: ToolRegistry) {}

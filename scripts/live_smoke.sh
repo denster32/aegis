@@ -3,11 +3,13 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 AEGIS="${AEGIS_BIN:-$HOME/.cargo/bin/aegis}"
+# Prefer OAuth over a spent console key (same policy as stress_test.sh)
+unset XAI_API_KEY SPACEXAI_API_KEY || true
 if [[ ! -x "$AEGIS" ]]; then
   AEGIS="$ROOT/target/release/aegis"
 fi
 if [[ ! -x "$AEGIS" ]]; then
-  echo "build release first: cargo build --release"
+  echo "build release first: cargo build --release -p aegis && ./install.sh"
   exit 1
 fi
 

@@ -44,8 +44,18 @@ Monochrome SpaceX / xAI terminal chrome — `aegis_core::ui`:
 - Geometric marks: `●` ok · `×` fail · `·` idle · `▸` active
 - REPL prompt `›`
 
+## Behavioral caveats
+
+| Caveat | Detail |
+|--------|--------|
+| Auto-YOLO | `-p`, `plan`, `mission`, `missions *` auto-approve tools (use only in trusted sandboxes) |
+| Stream | `--stream` applies to first agent step only |
+| Wiki refresh | Currently same as `generate` |
+| Unit tests | Thin (~12); live stress is primary confidence bar |
+| GitHub Actions | Private repo runners may fail to schedule; local clippy/test is the gate |
+
 ## Not productized (future)
 
 - Multi-agent model routing (`grok-4.20-multi-agent`)
 - Image/video generation products
-- Public CI green on private Actions (runner quota)
+- Hard multi-tenant sandboxing

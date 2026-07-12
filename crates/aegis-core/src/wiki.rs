@@ -70,7 +70,11 @@ pub async fn generate_wiki(root: &Path, client: &ResponsesClient, model: &str) -
             },
         }),
         include: None,
-        reasoning: Some(aegis_xai::ReasoningConfig::high()),
+        reasoning: if crate::model_supports_reasoning(model) {
+            Some(aegis_xai::ReasoningConfig::high())
+        } else {
+            None
+        },
         prompt_cache_key: Some("aegis-structured".into()),
     };
 

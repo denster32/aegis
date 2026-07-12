@@ -239,6 +239,7 @@ impl ProjectMemory {
 
 fn append_jsonl<T: Serialize>(path: &Path, item: &T) -> Result<()> {
     let line = serde_json::to_string(item)?;
+    let line = crate::redact::redact_secrets(&line);
     let mut f = OpenOptions::new()
         .create(true)
         .append(true)

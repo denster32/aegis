@@ -111,8 +111,8 @@ impl ToolContext {
                     let ans = ask(&format!("{action} [y/N] "));
                     matches!(ans.trim().to_lowercase().as_str(), "y" | "yes")
                 } else {
-                    // Non-interactive without yolo: allow in-cwd, deny otherwise is handled by callers
-                    true
+                    // Fail closed: non-interactive Prompt without ask callback denies.
+                    false
                 }
             }
         }

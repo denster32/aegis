@@ -7,12 +7,22 @@
 - **Compile break** in agent tool-loop: restore `had_tools_last` for reasoning policy
 - **Swarm workers:** omit `reasoning.effort` for models that reject it (`grok-code-fast-1` HTTP 400)
 - Align workspace version with release tags; `cargo fmt` / clippy clean for CI
+- UTF-8-safe truncation in agent/learn (no mid-char panic)
+- Shared `model_supports_reasoning` for wiki/dream/review/reflect
+- Tool loops force `store=true` for `previous_response_id` chains
+- `read_file` workspace-bound; `approve()` fail-closed without ask
+- Redact secrets on JSONL lessons/failures
+- Checkpoint stash stored as commit SHA; ambiguous id rejected
+- QA workflow installs binary and can fail honestly
+- Mission id short-slice bounds; live_smoke unsets console API key
 
 ### Docs
 
 - Prime-time README (full CLI map, Grok 4.5, docs index)
 - Expand platform docs; stress harness documentation
 - Changelog catch-up for 0.4.x / 0.5.0
+- Architecture diagram matches crate graph; SECURITY.md permission matrix
+- Full audit + hardening pass (multi-agent)
 
 ## 0.5.0 — 2026-07-12
 

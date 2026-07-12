@@ -4,7 +4,6 @@ use ignore::WalkBuilder;
 use regex::RegexBuilder;
 use serde_json::{json, Value};
 use std::fs;
-use std::path::PathBuf;
 
 pub struct GrepTool;
 
@@ -137,10 +136,4 @@ fn simple_glob_match(pat: &str, name: &str) -> bool {
         return name.starts_with(pre);
     }
     name == pat
-}
-
-// silence unused
-#[allow(dead_code)]
-fn _pb() -> PathBuf {
-    PathBuf::new()
 }

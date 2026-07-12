@@ -3,14 +3,26 @@
 .env
 .env.*
 !.env.example
-# local project learning (do not commit secrets); allow example layouts
+# secrets
+**/auth.json
+**/*.pem
+**/id_rsa
+**/credentials.json
+# local project learning / runtime (dogfooding may force-add intentional seeds)
 **/.aegis/auth.json
 **/.aegis/runs/
+**/.aegis/dream.lock
+**/.aegis/qa/evidence/
+**/.aegis/qa/reports/
+**/.aegis/reviews/
+**/.aegis/checkpoints/
+**/.aegis/metrics.json
+**/.aegis/dreams/
+**/.aegis/readiness/
+**/.aegis/factory/
 *.db
 *.db-*
 .DS_Store
 .idea/
 .vscode/
 *.swp
-.aegis/dream.lock
-.aegis/qa/evidence/

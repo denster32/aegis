@@ -38,3 +38,42 @@ pub use review::{
     ReviewReport,
 };
 pub use wiki::{generate_wiki, install_wiki_workflow};
+
+/// Whether this model accepts Responses API `reasoning.effort`.
+/// `grok-code-fast-1` and similar workers return HTTP 400 if reasoning is sent.
+pub fn model_supports_reasoning(model: &str) -> bool {
+    let m = model.to_ascii_lowercase();
+    m.contains("grok-4") || m.contains("grok4") || m.starts_with("grok-3")
+}
+
+/// Truncate to at most `max_chars` Unicode scalar values (UTF-8 safe).
+pub fn utf8_truncate(s: &str, max_chars: usize) -> String {
+    let count = s.chars().count();
+    if count <= max_chars {
+        s.to_string()
+    } else {
+        let mut t: String = s.chars().take(max_chars.saturating_sub(1)).collect();
+        t.push('…');
+        t
+    }
+}
+
+#[cfg(test)]
+mod util_tests {
+    use super::*;
+
+    #[test]
+    fn reasoning_gate() {
+        assert!(model_supports_reasoning("grok-4.5"));
+        assert!(model_supports_reasoning("grok-4-fast"));
+        assert!(!model_supports_reasoning("grok-code-fast-1"));
+    }
+
+    #[test]
+    fn utf8_truncate_multibyte() {
+        let s = "αβγδεζηθ";
+        let t = utf8_truncate(s, 4);
+        assert_eq!(t.chars().count(), 4);
+        assert!(t.ends_with('…'));
+    }
+}
