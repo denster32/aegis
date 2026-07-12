@@ -40,6 +40,13 @@ pub fn pack_workspace_with_memory(cwd: &Path, include_memory: bool) -> String {
                 parts.push(block);
             }
         }
+        // Nexus neural summary (compact immune memory)
+        if let Ok(Some(sum)) = aegis_memory::NeuralSummary::load(cwd) {
+            let block = sum.inject_block(2_500);
+            if block.len() > 40 {
+                parts.push(block);
+            }
+        }
     }
 
     parts.join("\n\n")

@@ -1,8 +1,8 @@
-# Release 0.6.0
+# Release 0.7.0
 
 **Status:** production-ready (sandbox + thick tests + CI)  
 **Date:** 2026-07-12  
-**Tag:** `v0.6.0`
+**Tag:** `v0.7.0`
 
 ## Product
 
@@ -18,7 +18,7 @@ Sovereign Grok-native coding agent in Rust:
 ```bash
 git clone https://github.com/denster32/aegis.git
 cd aegis && ./install.sh
-aegis --version   # 0.6.0
+aegis --version   # 0.7.0
 grok login && aegis auth status
 aegis --sandbox -p "Summarize README.md"
 ```

@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.6.0-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="version"/>
+  <img src="https://img.shields.io/badge/version-0.7.0-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="version"/>
   <img src="https://img.shields.io/badge/rust-1.96+-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="rust"/>
   <img src="https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="license"/>
   <img src="https://img.shields.io/badge/ui-monochrome-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="ui"/>
@@ -82,8 +82,15 @@ aegis missions run <id>
 | `aegis checkpoint *` | Git checkpoints |
 | `aegis vision` | Image describe |
 | `aegis auth` / `login` | OAuth |
+| `aegis nexus status` | Nexus organism overview |
+| `aegis evolve *` | Mutation genes + fitness |
+| `aegis spore *` | Viral pack / vaccinate |
+| `aegis compress` | Neural summary |
+| `aegis hardware *` | Host probe / throttle |
 
 **Flags:** `--effort low|medium|high` · `--yolo` · `--sandbox` · `--cwd` · `--session` · `--no-learn` · `--stream` · `-v` · `-m`
+
+See [docs/nexus.md](docs/nexus.md).
 
 ## Terminal UI
 

@@ -1,0 +1,390 @@
+{
+  "membrane": "sandbox-aware",
+  "tool_count": 15,
+  "tools": [
+    {
+      "description": "Fetch a public HTTPS URL and return text content (truncated). Blocks private/localhost addresses.",
+      "executor": "rust-local",
+      "name": "web_fetch",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "max_chars": {
+            "default": 50000,
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Search file contents with a regex. Respects .gitignore. Caps total matches.",
+      "executor": "rust-local",
+      "name": "grep",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "case_insensitive": {
+            "default": false,
+            "type": "boolean"
+          },
+          "glob": {
+            "description": "Optional file name glob filter",
+            "type": "string"
+          },
+          "max_matches": {
+            "default": 100,
+            "type": "integer"
+          },
+          "path": {
+            "description": "File or directory to search",
+            "type": "string"
+          },
+          "pattern": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pattern"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Replace exact text in a file. old_string must be unique unless replace_all is true.",
+      "executor": "rust-local",
+      "name": "edit_file",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "new_string": {
+            "type": "string"
+          },
+          "old_string": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "replace_all": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path",
+          "old_string",
+          "new_string"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Ask the human a question and wait for their answer. Use when blocked or need a preference.",
+      "executor": "rust-local",
+      "name": "ask_user",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "options": {
+            "description": "Optional multiple-choice options",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "question": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Show git diff (optionally staged). Caps output size.",
+      "executor": "rust-local",
+      "name": "git_diff",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "staged": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "description": "Append a lesson or failure fix, or write a skill playbook under .aegis/ for this project.",
+      "executor": "rust-local",
+      "name": "memory_write",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "fix": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "lesson",
+              "failure",
+              "skill",
+              "gotcha"
+            ],
+            "type": "string"
+          },
+          "skill_body": {
+            "type": "string"
+          },
+          "skill_name": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Read a text file. Optional 1-based offset and limit (lines). Binary files are rejected.",
+      "executor": "rust-local",
+      "name": "read_file",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "description": "Max lines to return",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "1-based start line",
+            "type": "integer"
+          },
+          "path": {
+            "description": "Absolute or workspace-relative path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Create or overwrite a text file with the given contents.",
+      "executor": "rust-local",
+      "name": "write_file",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Capture a screenshot of the screen or a file preview to .aegis/screenshots/ (requires import or scrot).",
+      "executor": "rust-local",
+      "name": "screenshot",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "default": "shot",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "description": "Run a shell command in the workspace. Prefer non-interactive commands. Captures stdout+stderr.",
+      "executor": "rust-local",
+      "name": "bash",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "command": {
+            "description": "Shell command to run",
+            "type": "string"
+          },
+          "cwd": {
+            "description": "Optional working directory",
+            "type": "string"
+          },
+          "timeout_ms": {
+            "description": "Timeout in ms (default 120000)",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Read project learning files under .aegis/ (MEMORY.md, lessons summary, or a skill).",
+      "executor": "rust-local",
+      "name": "memory_read",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Skill name when what=skill",
+            "type": "string"
+          },
+          "what": {
+            "description": "Which memory surface to read",
+            "enum": [
+              "memory",
+              "lessons",
+              "failures",
+              "skills",
+              "skill"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "what"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Find files matching a glob pattern under the workspace (respects .gitignore).",
+      "executor": "rust-local",
+      "name": "glob",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "max_results": {
+            "default": 200,
+            "type": "integer"
+          },
+          "path": {
+            "description": "Root directory (default: workspace)",
+            "type": "string"
+          },
+          "pattern": {
+            "description": "Glob pattern, e.g. **/*.rs",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pattern"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Replace the session todo list. Pass a JSON array of {id, content, status} items.",
+      "executor": "rust-local",
+      "name": "todo_write",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "todos": {
+            "items": {
+              "properties": {
+                "content": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "pending",
+                    "in_progress",
+                    "completed",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "content",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "todos"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Show git status --short and current branch for the workspace.",
+      "executor": "rust-local",
+      "name": "git_status",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "description": "Describe a local image file (png/jpg) using the vision model. Path relative to workspace or absolute.",
+      "executor": "rust-local",
+      "name": "vision_describe",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "question": {
+            "default": "Describe this image and note any UI/layout issues.",
+            "description": "What to look for",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    }
+  ],
+  "version": 1
+}

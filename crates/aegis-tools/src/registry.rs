@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use parking_lot::Mutex;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -174,6 +174,44 @@ impl ToolRegistry {
                 )
             })
             .collect()
+    }
+
+    /// Self-describing capability map for Grok dynamic tool routing.
+    pub fn capability_map(&self) -> Value {
+        let tools: Vec<Value> = self
+            .list()
+            .into_iter()
+            .map(|t| {
+                json!({
+                    "name": t.name(),
+                    "description": t.description(),
+                    "executor": "rust-local",
+                    "parameters": t.parameters_schema(),
+                })
+            })
+            .collect();
+        json!({
+            "version": 1,
+            "membrane": "sandbox-aware",
+            "tool_count": tools.len(),
+            "tools": tools,
+        })
+    }
+
+    /// Compact system fragment (token-light) listing tool names + one-line descriptions.
+    pub fn capability_fragment(&self, max_chars: usize) -> String {
+        let mut lines = vec!["## Capability map (local Rust tools)".to_string()];
+        let mut tools = self.list();
+        tools.sort_by(|a, b| a.name().cmp(b.name()));
+        for t in tools {
+            lines.push(format!("- `{}`: {}", t.name(), t.description()));
+        }
+        let s = lines.join("\n");
+        if s.len() > max_chars {
+            format!("{}…", &s[..max_chars.saturating_sub(1)])
+        } else {
+            s
+        }
     }
 }
 

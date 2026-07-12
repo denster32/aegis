@@ -8,7 +8,12 @@ use aegis_core::{
     readiness_report, review_diff, review_pr, run_dream, run_mission, run_plan, run_qa, ui,
     AegisConfig, AgentLoop, DreamOptions, Effort, MissionOptions,
 };
-use aegis_memory::ProjectMemory;
+use aegis_evolution::{
+    list_run_ids, load_run, save_run, score_run, EvolutionEngine, FitnessSignals, MutationRequest,
+};
+use aegis_hardware::{format_probe, policy_from_snapshot, probe_host};
+use aegis_memory::{NeuralSummary, ProjectMemory};
+use aegis_spore::{pack_spore, unpack_spore, vaccinate};
 use aegis_store::{AegisPaths, Store};
 use aegis_tools::{default_registry, PermissionMode};
 use aegis_xai::{ResponsesClient, TokenSource as XaiTokenSource};
@@ -197,6 +202,35 @@ enum Commands {
     /// Install GH wiki-refresh workflow
     InstallWikiRefresh,
 
+    // ── Nexus ──────────────────────────────────────────────
+    /// Nexus organism status (cells · membrane · summary)
+    #[command(next_help_heading = "Nexus")]
+    Nexus {
+        #[command(subcommand)]
+        action: Option<NexusCmd>,
+    },
+    /// Evolution: Grok mutation genes + local fitness
+    Evolve {
+        #[command(subcommand)]
+        action: EvolveCmd,
+    },
+    /// Viral spore pack / unpack / vaccinate
+    Spore {
+        #[command(subcommand)]
+        action: SporeCmd,
+    },
+    /// Neural summary compression (local or Grok)
+    Compress {
+        /// Use local distillation only (no API)
+        #[arg(long)]
+        local: bool,
+    },
+    /// Hardware probe and throttle policy
+    Hardware {
+        #[command(subcommand)]
+        action: HardwareCmd,
+    },
+
     // ── Auth ───────────────────────────────────────────────
     /// Authenticate with Grok OAuth
     #[command(next_help_heading = "Auth")]
@@ -297,6 +331,47 @@ enum AutomationCmd {
     InstallAll,
 }
 
+#[derive(Subcommand, Debug)]
+enum NexusCmd {
+    /// Organism overview (default)
+    Status,
+}
+
+#[derive(Subcommand, Debug)]
+enum EvolveCmd {
+    /// Propose genes for a goal (Grok structured)
+    Propose {
+        goal: String,
+        #[arg(long, default_value_t = 3)]
+        max: usize,
+    },
+    /// Score a run's genes with local fitness signals
+    Run { id: String },
+    /// List evolution runs
+    Status,
+}
+
+#[derive(Subcommand, Debug)]
+enum SporeCmd {
+    /// Pack redacted learning into a spore directory
+    Pack {
+        #[arg(long, default_value = ".aegis/nexus/spore-out")]
+        out: PathBuf,
+    },
+    /// Unpack spore into current project
+    Unpack { path: PathBuf },
+    /// Unpack + force sandbox=true
+    Vaccinate { path: PathBuf },
+}
+
+#[derive(Subcommand, Debug)]
+enum HardwareCmd {
+    /// Probe host (cpu/mem/load)
+    Probe,
+    /// Derive throttle policy from probe
+    Policy,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -341,6 +416,143 @@ async fn main() -> Result<()> {
         }
         Some(Commands::Factory) => {
             print!("{}", format_factory(&factory_status(&cwd_early)));
+            return Ok(());
+        }
+        Some(Commands::Nexus { action }) => {
+            let _ = action;
+            print!("{}", nexus_status(&cwd_early, cli.sandbox)?);
+            return Ok(());
+        }
+        Some(Commands::Hardware { action }) => {
+            let snap = probe_host();
+            match action {
+                HardwareCmd::Probe => {
+                    println!("{}", ui::header("hardware"));
+                    print!("{}", format_probe(&snap));
+                }
+                HardwareCmd::Policy => {
+                    let pol = policy_from_snapshot(&snap);
+                    println!("{}", ui::header("hardware policy"));
+                    println!("{}", ui::kv("parallel", pol.max_tool_parallel.to_string()));
+                    println!("{}", ui::kv("effort", &pol.preferred_effort));
+                    println!("{}", ui::kv("max_steps", pol.max_agent_steps.to_string()));
+                    println!("{}", ui::kv("notes", &pol.notes));
+                }
+            }
+            return Ok(());
+        }
+        Some(Commands::Spore { action }) => {
+            match action {
+                SporeCmd::Pack { out } => {
+                    let out = if out.is_absolute() {
+                        out.clone()
+                    } else {
+                        cwd_early.join(out)
+                    };
+                    let m = pack_spore(&cwd_early, &out)?;
+                    println!("{}", ui::header("spore pack"));
+                    println!("{}", ui::kv("out", out.display().to_string()));
+                    println!("{}", ui::kv("sandbox", m.sandbox_default.to_string()));
+                    println!("{}", ui::kv("includes", m.includes.join(", ")));
+                }
+                SporeCmd::Unpack { path } => {
+                    let p = if path.is_absolute() {
+                        path.clone()
+                    } else {
+                        cwd_early.join(path)
+                    };
+                    unpack_spore(&p, &cwd_early)?;
+                    println!("{}", ui::event("spore", "unpacked"));
+                }
+                SporeCmd::Vaccinate { path } => {
+                    let p = if path.is_absolute() {
+                        path.clone()
+                    } else {
+                        cwd_early.join(path)
+                    };
+                    vaccinate(&p, &cwd_early)?;
+                    println!("{}", ui::event("spore", "vaccinated (sandbox=true)"));
+                }
+            }
+            return Ok(());
+        }
+        Some(Commands::Compress { local: true }) => {
+            let mem = ProjectMemory::open(&cwd_early)?;
+            let sum = NeuralSummary::from_project_local(&mem)?;
+            sum.save(&cwd_early)?;
+            println!("{}", ui::header("compress"));
+            println!("{}", ui::kv("mode", "local"));
+            println!(
+                "{}",
+                ui::kv(
+                    "path",
+                    NeuralSummary::path(&cwd_early).display().to_string()
+                )
+            );
+            println!(
+                "{}",
+                ui::kv("lessons", sum.durable_lessons.len().to_string())
+            );
+            return Ok(());
+        }
+        Some(Commands::Evolve {
+            action: EvolveCmd::Status,
+        }) => {
+            println!("{}", ui::header("evolve"));
+            let ids = list_run_ids(&cwd_early).unwrap_or_default();
+            if ids.is_empty() {
+                println!("  {}", style("none").dim());
+            } else {
+                for id in ids {
+                    if let Ok(run) = load_run(&cwd_early, &id) {
+                        println!(
+                            "  {}  genes={}  best={}",
+                            style(&id[..8.min(id.len())]).white(),
+                            run.genes.len(),
+                            run.best_gene_id.as_deref().unwrap_or("—")
+                        );
+                    }
+                }
+            }
+            return Ok(());
+        }
+        Some(Commands::Evolve {
+            action: EvolveCmd::Run { id },
+        }) => {
+            let run = load_run(&cwd_early, id)?;
+            let report = assess_v2(&cwd_early);
+            let signals = FitnessSignals {
+                readiness_pct: report.score_pct as f32,
+                cargo_ok: Some(
+                    std::process::Command::new("cargo")
+                        .args(["test", "--quiet"])
+                        .current_dir(&cwd_early)
+                        .status()
+                        .map(|s| s.success())
+                        .unwrap_or(false),
+                ),
+                lesson_hits: ProjectMemory::open(&cwd_early)
+                    .ok()
+                    .and_then(|m| m.load_lessons().ok())
+                    .map(|l| l.len() as u32)
+                    .unwrap_or(0),
+            };
+            let scored = score_run(&run.goal, run.genes.clone(), &signals);
+            save_run(&cwd_early, &scored)?;
+            println!("{}", ui::header("evolve run"));
+            println!("{}", ui::kv("id", &scored.id));
+            println!(
+                "{}",
+                ui::kv("best", scored.best_gene_id.as_deref().unwrap_or("—"))
+            );
+            for s in &scored.scores {
+                println!(
+                    "  {}  {:.2}  {}",
+                    style(&s.gene_id[..8.min(s.gene_id.len())]).white(),
+                    s.score,
+                    style(&s.notes).dim()
+                );
+            }
             return Ok(());
         }
         Some(Commands::Automation {
@@ -808,6 +1020,111 @@ async fn main() -> Result<()> {
             println!("{}", ui::header("install"));
             println!("{}", ui::event("ok", "automations · workflows · skills"));
         }
+        Some(Commands::Compress { local: false }) => {
+            // Prefer Grok distillation; fall back to local on API failure.
+            println!("{}", ui::header("compress"));
+            let mem = ProjectMemory::open(&cwd)?;
+            let pack = format!(
+                "MEMORY:\n{}\n\nLESSONS:\n{:#?}",
+                mem.read_memory_md().unwrap_or_default(),
+                mem.load_lessons().unwrap_or_default()
+            );
+            let mut agent_c = agent;
+            let prompt = format!(
+                "Distill this project immune memory into JSON with keys: \
+                 stack (string), conventions (string[]), active_risks (string[]), \
+                 durable_lessons (string[]), style_priors (string[]), open_threads (string[]), narrative (string).\n\n{pack}"
+            );
+            match agent_c.run_turn(&prompt).await {
+                Ok(text) => {
+                    let mut sum = NeuralSummary::from_project_local(&mem)?;
+                    if let Some(json) = extract_json_obj(&text) {
+                        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&json) {
+                            if let Some(s) = v.get("stack").and_then(|x| x.as_str()) {
+                                sum.stack = s.into();
+                            }
+                            if let Some(s) = v.get("narrative").and_then(|x| x.as_str()) {
+                                sum.narrative = s.into();
+                            }
+                            if let Some(a) = v.get("durable_lessons").and_then(|x| x.as_array()) {
+                                sum.durable_lessons = a
+                                    .iter()
+                                    .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                                    .collect();
+                            }
+                            if let Some(a) = v.get("active_risks").and_then(|x| x.as_array()) {
+                                sum.active_risks = a
+                                    .iter()
+                                    .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                                    .collect();
+                            }
+                            if let Some(a) = v.get("conventions").and_then(|x| x.as_array()) {
+                                sum.conventions = a
+                                    .iter()
+                                    .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                                    .collect();
+                            }
+                        }
+                    }
+                    sum.save(&cwd)?;
+                    println!("{}", ui::kv("mode", "grok+local-merge"));
+                    println!(
+                        "{}",
+                        ui::kv("path", NeuralSummary::path(&cwd).display().to_string())
+                    );
+                }
+                Err(e) => {
+                    let sum = NeuralSummary::from_project_local(&mem)?;
+                    sum.save(&cwd)?;
+                    println!("{}", ui::kv("mode", "local-fallback"));
+                    println!("{}", ui::warn_line(format!("grok failed: {e:#}")));
+                }
+            }
+        }
+        Some(Commands::Evolve {
+            action: EvolveCmd::Propose { goal, max },
+        }) => {
+            println!("{}", ui::header("evolve propose"));
+            let mem = ProjectMemory::open(&cwd).ok();
+            let ctx = mem
+                .as_ref()
+                .and_then(|m| m.read_memory_md().ok())
+                .unwrap_or_default();
+            let engine = EvolutionEngine::new(agent.client.clone(), agent.config.model.clone());
+            let req = MutationRequest {
+                goal: goal.clone(),
+                max_genes: max,
+                context: truncate(&ctx, 4000),
+            };
+            let genes = engine.propose(&req).await?;
+            let signals = FitnessSignals {
+                readiness_pct: assess_v2(&cwd).score_pct as f32,
+                cargo_ok: None,
+                lesson_hits: mem
+                    .and_then(|m| m.load_lessons().ok())
+                    .map(|l| l.len() as u32)
+                    .unwrap_or(0),
+            };
+            let run = score_run(goal, genes, &signals);
+            save_run(&cwd, &run)?;
+            println!("{}", ui::kv("run", &run.id));
+            println!("{}", ui::kv("genes", run.genes.len().to_string()));
+            for g in &run.genes {
+                println!(
+                    "  {}  {}  {}",
+                    style(&g.id[..8.min(g.id.len())]).white(),
+                    style(format!("{:?}", g.kind)).dim(),
+                    style(&g.title).white()
+                );
+            }
+            println!(
+                "{}",
+                ui::kv(
+                    "next",
+                    format!("aegis evolve run {}", &run.id[..8.min(run.id.len())])
+                )
+            );
+        }
         Some(Commands::Missions { .. })
         | Some(Commands::Memory { .. })
         | Some(Commands::Readiness { .. })
@@ -816,7 +1133,14 @@ async fn main() -> Result<()> {
         | Some(Commands::Session { .. })
         | Some(Commands::Login { .. })
         | Some(Commands::Logout)
-        | Some(Commands::Auth { .. }) => unreachable!(),
+        | Some(Commands::Auth { .. })
+        | Some(Commands::Nexus { .. })
+        | Some(Commands::Hardware { .. })
+        | Some(Commands::Spore { .. })
+        | Some(Commands::Compress { local: true })
+        | Some(Commands::Evolve {
+            action: EvolveCmd::Status | EvolveCmd::Run { .. },
+        }) => unreachable!(),
         None => {
             if let Some(p) = cli.prompt {
                 eprint!(
@@ -1037,4 +1361,97 @@ fn truncate(s: &str, n: usize) -> String {
         t.push('…');
         t
     }
+}
+
+fn extract_json_obj(text: &str) -> Option<String> {
+    let t = text.trim();
+    if t.starts_with('{') {
+        return Some(t.to_string());
+    }
+    let start = t.find('{')?;
+    let end = t.rfind('}')?;
+    if end > start {
+        Some(t[start..=end].to_string())
+    } else {
+        None
+    }
+}
+
+fn nexus_status(cwd: &std::path::Path, sandbox_flag: bool) -> Result<String> {
+    use std::fmt::Write;
+    let mut s = String::new();
+    s.push_str(&ui::header("nexus"));
+    let _ = writeln!(s, "{}", ui::kv("organism", "aegis-nexus"));
+    let _ = writeln!(
+        s,
+        "{}",
+        ui::kv(
+            "membrane",
+            if sandbox_flag {
+                "sandbox"
+            } else {
+                "prompt/yolo"
+            }
+        )
+    );
+    let _ = writeln!(s, "{}", ui::kv("cwd", cwd.display().to_string()));
+    if let Ok(mem) = ProjectMemory::open(cwd) {
+        let lessons = mem.load_lessons().map(|l| l.len()).unwrap_or(0);
+        let fails = mem.load_failures().map(|l| l.len()).unwrap_or(0);
+        let _ = writeln!(s, "{}", ui::kv("lessons", lessons.to_string()));
+        let _ = writeln!(s, "{}", ui::kv("failures", fails.to_string()));
+    }
+    match NeuralSummary::load(cwd)? {
+        Some(n) => {
+            let _ = writeln!(s, "{}", ui::kv("neural", &n.created_at));
+            let _ = writeln!(
+                s,
+                "{}",
+                ui::kv("lessons_n", n.durable_lessons.len().to_string())
+            );
+        }
+        None => {
+            let _ = writeln!(s, "{}", ui::kv("neural", "none — aegis compress"));
+        }
+    }
+    let evo = list_run_ids(cwd).unwrap_or_default().len();
+    let _ = writeln!(s, "{}", ui::kv("evolution", format!("{evo} runs")));
+    let snap = probe_host();
+    let _ = writeln!(
+        s,
+        "{}",
+        ui::kv(
+            "host",
+            format!(
+                "{} cpus={} load={:?}",
+                snap.hostname, snap.cpus, snap.load_1
+            )
+        )
+    );
+    let reg = default_registry();
+    let map = reg.capability_map();
+    let _ = writeln!(
+        s,
+        "{}",
+        ui::kv(
+            "tools",
+            map.get("tool_count")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0)
+                .to_string()
+        )
+    );
+    // snapshot capability map for inspection
+    let cap_path = cwd.join(".aegis/nexus/capability-map.json");
+    if let Some(p) = cap_path.parent() {
+        let _ = std::fs::create_dir_all(p);
+    }
+    let _ = std::fs::write(&cap_path, serde_json::to_string_pretty(&map)?);
+    let _ = writeln!(s);
+    let _ = writeln!(
+        s,
+        "  {}",
+        style("evolve · spore · compress · hardware · --sandbox").dim()
+    );
+    Ok(s)
 }

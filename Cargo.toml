@@ -11,10 +11,13 @@ members = [
     "crates/aegis-context",
     "crates/aegis-memory",
     "crates/aegis-mcp",
+    "crates/aegis-evolution",
+    "crates/aegis-spore",
+    "crates/aegis-hardware",
 ]
 
 [workspace.package]
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 license = "MIT"
 authors = ["Dennis"]
@@ -31,6 +34,9 @@ aegis-store = { path = "crates/aegis-store" }
 aegis-context = { path = "crates/aegis-context" }
 aegis-memory = { path = "crates/aegis-memory" }
 aegis-mcp = { path = "crates/aegis-mcp" }
+aegis-evolution = { path = "crates/aegis-evolution" }
+aegis-spore = { path = "crates/aegis-spore" }
+aegis-hardware = { path = "crates/aegis-hardware" }
 
 anyhow = "1"
 async-trait = "0.1"

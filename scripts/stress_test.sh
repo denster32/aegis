@@ -305,6 +305,21 @@ if [[ "$STRESS_LONG" == "1" ]]; then
   fi
 fi
 
+
+# ---------- S21 nexus ----------
+phase "S21 nexus status"
+if run_to 30 "$AEGIS" --cwd "$ROOT" nexus status >>"$LOG" 2>&1; then ok "S21 nexus"; else bad "S21 nexus"; fi
+
+# ---------- S22 spore ----------
+phase "S22 spore pack"
+SPORE_OUT="$STRESS_ROOT/spore"
+if run_to 60 "$AEGIS" --cwd "$PROJ" spore pack --out "$SPORE_OUT" >>"$LOG" 2>&1 \
+  && [[ -f "$SPORE_OUT/SPORE.json" ]]; then ok "S22 spore"; else bad "S22 spore"; fi
+
+# ---------- S23 compress local ----------
+phase "S23 compress local"
+if run_to 60 "$AEGIS" --cwd "$PROJ" compress --local >>"$LOG" 2>&1; then ok "S23 compress"; else bad "S23 compress"; fi
+
 END_TS=$(date +%s)
 DUR=$((END_TS-START_TS))
 

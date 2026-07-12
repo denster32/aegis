@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 — 2026-07-12
+
+### Aegis Nexus (living immune system MVP)
+
+- **`aegis-evolution`** — genes, Grok propose, local fitness, run persistence
+- **`aegis-spore`** — pack / unpack / vaccinate with redaction membrane
+- **`aegis-hardware`** — host probe + throttle policy heuristics
+- **Neural summary** — `aegis compress` → `.aegis/nexus/neural-summary.json` (injected into context)
+- **Capability map** — registry self-description snapshot
+- CLI: `nexus`, `evolve`, `spore`, `compress`, `hardware`
+- Docs: [docs/nexus.md](docs/nexus.md)
+
 ## 0.6.0 — 2026-07-12
 
 ### Sandbox (multi-tenant-style tool isolation)

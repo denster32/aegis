@@ -4,12 +4,15 @@ version = 4
 
 [[package]]
 name = "aegis"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "aegis-auth",
  "aegis-core",
+ "aegis-evolution",
+ "aegis-hardware",
  "aegis-mcp",
  "aegis-memory",
+ "aegis-spore",
  "aegis-store",
  "aegis-tools",
  "aegis-xai",
@@ -28,7 +31,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-auth"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -47,7 +50,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-context"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "aegis-memory",
  "anyhow",
@@ -61,7 +64,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-core"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "aegis-context",
  "aegis-memory",
@@ -87,8 +90,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "aegis-evolution"
+version = "0.7.0"
+dependencies = [
+ "aegis-xai",
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "aegis-hardware"
+version = "0.7.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "aegis-mcp"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "aegis-tools",
  "anyhow",
@@ -101,7 +133,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-memory"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -117,8 +149,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "aegis-spore"
+version = "0.7.0"
+dependencies = [
+ "aegis-memory",
+ "anyhow",
+ "chrono",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "walkdir",
+]
+
+[[package]]
 name = "aegis-store"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -137,7 +183,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-swarm"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "aegis-store",
  "anyhow",
@@ -152,7 +198,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-tools"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "aegis-memory",
  "anyhow",
@@ -177,7 +223,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-xai"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "async-trait",

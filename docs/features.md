@@ -1,6 +1,6 @@
 # Feature matrix
 
-Verified against CLI + crates as of **0.6.0**.
+Verified against CLI + crates as of **0.7.0**.
 
 ## Agent
 
@@ -71,3 +71,14 @@ Monochrome SpaceX / xAI terminal chrome — `aegis_core::ui`:
 - Multi-agent model routing (`grok-4.20-multi-agent`)
 - Image/video generation products
 - OS-level isolation (seccomp / containers) beyond tool-layer `--sandbox`
+
+## Nexus (0.7.0)
+
+| Feature | Status | Entry |
+|---------|--------|--------|
+| Organism status | ✅ | `aegis nexus status` |
+| Evolution genes | ✅ | `aegis evolve propose\|run\|status` |
+| Spore pack/vaccinate | ✅ | `aegis spore *` |
+| Neural compress | ✅ | `aegis compress [--local]` |
+| Hardware probe | ✅ | `aegis hardware probe\|policy` |
+| Capability map | ✅ | written under `.aegis/nexus/` |
