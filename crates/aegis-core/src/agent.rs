@@ -5,8 +5,8 @@ use aegis_context;
 use aegis_store::Store;
 use aegis_tools::{PermissionMode, ToolContext, ToolRegistry, TodoStore};
 use aegis_xai::{
-    system_msg, user_msg, CreateResponseRequest, FunctionCallOutput, InputItem, ResponsesClient,
-    TextConfig, TextFormat, ToolChoice, ToolDef,
+    server_tools, system_msg, user_msg, CreateResponseRequest, FunctionCallOutput, InputItem,
+    ReasoningConfig, ResponsesClient, TextConfig, TextFormat, ToolChoice, ToolDef, ToolSpec,
 };
 use anyhow::{Context, Result};
 use console::style;
@@ -102,12 +102,29 @@ impl AgentLoop {
             .unwrap_or(self.config.model.as_str())
     }
 
-    fn tool_defs(&self) -> Vec<ToolDef> {
-        self.tools
+    fn tool_specs(&self) -> Vec<ToolSpec> {
+        let mut specs: Vec<ToolSpec> = self
+            .tools
             .to_xai_tools()
             .into_iter()
-            .map(|(name, desc, params)| ToolDef::function(name, desc, params))
-            .collect()
+            .map(|(name, desc, params)| ToolDef::function(name, desc, params).as_spec())
+            .collect();
+        specs.extend(server_tools(
+            self.config.web_search,
+            self.config.x_search,
+            self.config.code_execution,
+        ));
+        specs
+    }
+
+    fn reasoning_for_step(&self, step: usize, had_tools_last: bool) -> ReasoningConfig {
+        // First planning-ish step / after tools may need more thought; pure tool loops prefer low.
+        let effort = if step <= 1 && !had_tools_last {
+            self.config.reasoning_effort.as_str()
+        } else {
+            self.config.tool_reasoning_effort.as_str()
+        };
+        ReasoningConfig::from_str(effort)
     }
 
     fn tool_context(&self) -> ToolContext {
@@ -160,6 +177,7 @@ impl AgentLoop {
 
         let mut final_text = String::new();
         let mut steps = 0usize;
+        let mut let _ = had_tools_last; had_tools_last = false;
 
         loop {
             steps += 1;
@@ -167,10 +185,11 @@ impl AgentLoop {
                 anyhow::bail!("max agent steps ({}) exceeded", self.config.max_agent_steps);
             }
 
+            let reasoning = self.reasoning_for_step(steps, had_tools_last);
             let req = CreateResponseRequest {
                 model: self.model().to_string(),
                 input: input.clone(),
-                tools: Some(self.tool_defs()),
+                tools: Some(self.tool_specs()),
                 tool_choice: Some(ToolChoice::auto()),
                 previous_response_id: self.previous_response_id.clone(),
                 store: Some(self.config.store_server_side),
@@ -180,9 +199,17 @@ impl AgentLoop {
                 parallel_tool_calls: Some(true),
                 text: None,
                 include: None,
+                reasoning: Some(reasoning.clone()),
+                prompt_cache_key: Some(self.session_id.clone()),
             };
 
-            debug!(step = steps, model = %self.model(), "agent step");
+            debug!(
+                step = steps,
+                model = %self.model(),
+                reasoning = %reasoning.effort,
+                cache_key = %self.session_id,
+                "agent step"
+            );
             let allow_stream = self.use_streaming && steps == 1;
             let resp = if allow_stream {
                 let emit = self.print_fn.clone();
@@ -212,6 +239,11 @@ impl AgentLoop {
                     u.input_tokens.unwrap_or(0),
                     u.output_tokens.unwrap_or(0),
                 );
+                let cached = u.cached_tokens();
+                let reasoning_toks = u.reasoning_token_count();
+                if cached > 0 || reasoning_toks > 0 {
+                    debug!(cached, reasoning_toks, "xAI usage details");
+                }
             }
 
             self.previous_response_id = Some(resp.id.clone());
@@ -238,14 +270,17 @@ impl AgentLoop {
                 final_text = text;
             }
 
+            // Server-side tools (web_search, code_execution, …) complete on xAI — only client function_calls need local exec
             let calls = resp.function_calls();
             if calls.is_empty() {
                 if !final_text.is_empty() {
                     self.store
                         .append_message(&self.session_id, "assistant", &final_text)?;
                 }
+                let _ = had_tools_last; had_tools_last = false;
                 break;
             }
+            had_tools_last = true;
 
             // Execute tools in parallel
             let sem = Arc::new(Semaphore::new(self.config.max_tool_parallel));
@@ -451,6 +486,8 @@ impl AgentLoop {
                 },
             }),
             include: None,
+            reasoning: Some(aegis_xai::ReasoningConfig::high()),
+            prompt_cache_key: Some(format!("aegis-{}", std::process::id())),
         };
 
         let resp = match self.client.create(req).await {
@@ -476,6 +513,8 @@ impl AgentLoop {
                     parallel_tool_calls: None,
                     text: None,
                     include: None,
+                    reasoning: Some(aegis_xai::ReasoningConfig::high()),
+                    prompt_cache_key: Some(format!("aegis-{}", std::process::id())),
                 };
                 self.client.create(fallback).await?
             }

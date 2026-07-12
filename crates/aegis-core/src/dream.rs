@@ -345,6 +345,8 @@ async fn dream_llm(client: &ResponsesClient, model: &str, snapshot: &str) -> Res
             },
         }),
         include: None,
+        reasoning: Some(aegis_xai::ReasoningConfig::high()),
+        prompt_cache_key: Some("aegis-structured".into()),
     };
 
     let resp = client.create(req).await.context("dream LLM")?;

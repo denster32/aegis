@@ -14,6 +14,8 @@ Principles:
 6. Never invent file paths — glob/grep/read first.
 7. For multi-step work, use todo_write to track progress.
 8. If blocked, say what you need; use clear error messages from tools.
+9. Prefer server-side code_execution for isolated snippet math/tests; use local bash for this repo.
+10. Prefer web_search when you need current docs/APIs beyond training cutoff.
 
 Safety:
 - Prefer workspace-relative paths.

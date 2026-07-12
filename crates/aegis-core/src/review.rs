@@ -178,6 +178,8 @@ async fn review_text(
             },
         }),
         include: None,
+        reasoning: Some(aegis_xai::ReasoningConfig::high()),
+        prompt_cache_key: Some("aegis-structured".into()),
     };
 
     let resp = client.create(req).await?;

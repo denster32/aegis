@@ -41,8 +41,31 @@ pub struct AegisConfig {
     /// Rough token budget before auto-compaction kicks in.
     pub compact_token_threshold: usize,
     pub enable_web_fetch: bool,
+    /// Maps to xAI `reasoning.effort` for grok-4.5 (low|medium|high).
+    #[serde(default = "default_reasoning")]
+    pub reasoning_effort: String,
+    /// Effort used during tool-heavy implementation steps (docs recommend low for agentic tools).
+    #[serde(default = "default_tool_reasoning")]
+    pub tool_reasoning_effort: String,
+    /// xAI server-side tools
+    #[serde(default)]
+    pub web_search: bool,
+    #[serde(default)]
+    pub x_search: bool,
+    #[serde(default = "default_true")]
+    pub code_execution: bool,
     #[serde(default)]
     pub mcp_servers: Vec<McpServerConfigSerde>,
+}
+
+fn default_reasoning() -> String {
+    "high".into()
+}
+fn default_tool_reasoning() -> String {
+    "low".into()
+}
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -66,29 +89,42 @@ impl Default for AegisConfig {
             yolo: false,
             compact_token_threshold: 120_000,
             enable_web_fetch: true,
+            reasoning_effort: default_reasoning(),
+            tool_reasoning_effort: default_tool_reasoning(),
+            web_search: true,
+            x_search: false,
+            code_execution: true,
             mcp_servers: Vec::new(),
         }
     }
 }
 
 impl AegisConfig {
+    /// Map CLI --effort to both model routing AND xAI reasoning.effort.
     pub fn with_effort(mut self, effort: Effort) -> Self {
         match effort {
             Effort::High => {
                 self.model = "grok-4.5".into();
                 self.worker_model = "grok-4.5".into();
+                self.reasoning_effort = "high".into();
+                self.tool_reasoning_effort = "medium".into();
                 self.max_tool_parallel = 8;
                 self.max_swarm_workers = 6;
             }
             Effort::Medium => {
                 self.model = "grok-4.5".into();
                 self.worker_model = "grok-code-fast-1".into();
+                self.reasoning_effort = "medium".into();
+                self.tool_reasoning_effort = "low".into();
                 self.max_tool_parallel = 6;
                 self.max_swarm_workers = 4;
             }
             Effort::Low => {
-                self.model = "grok-4-fast".into();
+                // Prefer grok-4.5 with low reasoning over older fast models when possible
+                self.model = "grok-4.5".into();
                 self.worker_model = "grok-code-fast-1".into();
+                self.reasoning_effort = "low".into();
+                self.tool_reasoning_effort = "low".into();
                 self.max_tool_parallel = 4;
                 self.max_swarm_workers = 2;
             }
@@ -128,6 +164,11 @@ struct PartialConfig {
     yolo: Option<bool>,
     compact_token_threshold: Option<usize>,
     enable_web_fetch: Option<bool>,
+    reasoning_effort: Option<String>,
+    tool_reasoning_effort: Option<String>,
+    web_search: Option<bool>,
+    x_search: Option<bool>,
+    code_execution: Option<bool>,
     #[serde(default)]
     mcp_servers: Option<Vec<McpServerConfigSerde>>,
 }
@@ -163,6 +204,21 @@ impl PartialConfig {
         }
         if let Some(v) = self.enable_web_fetch {
             cfg.enable_web_fetch = v;
+        }
+        if let Some(v) = self.reasoning_effort {
+            cfg.reasoning_effort = v;
+        }
+        if let Some(v) = self.tool_reasoning_effort {
+            cfg.tool_reasoning_effort = v;
+        }
+        if let Some(v) = self.web_search {
+            cfg.web_search = v;
+        }
+        if let Some(v) = self.x_search {
+            cfg.x_search = v;
+        }
+        if let Some(v) = self.code_execution {
+            cfg.code_execution = v;
         }
         if let Some(v) = self.mcp_servers {
             cfg.mcp_servers = v;

@@ -194,7 +194,7 @@ impl ResponsesClient {
                     // Prefer explicit delta event types only (avoid double-printing)
                     if etype.contains("output_text.delta")
                         || etype == "response.output_text.delta"
-                        || etype.ends_with("text.delta")
+                        || (etype.ends_with("text.delta") && !etype.contains("reasoning"))
                     {
                         if let Some(delta) = v
                             .pointer("/delta")
@@ -203,6 +203,21 @@ impl ResponsesClient {
                         {
                             if !delta.is_empty() {
                                 on_delta(StreamEvent::TextDelta(delta.to_string()));
+                            }
+                        }
+                    }
+                    // Reasoning summary deltas (Grok 4.5)
+                    if etype.contains("reasoning_summary")
+                        || etype.contains("reasoning_text")
+                        || etype.contains("reasoning.delta")
+                    {
+                        if let Some(delta) = v
+                            .pointer("/delta")
+                            .and_then(|x| x.as_str())
+                            .or_else(|| v.get("delta").and_then(|x| x.as_str()))
+                        {
+                            if !delta.is_empty() {
+                                on_delta(StreamEvent::ReasoningDelta(delta.to_string()));
                             }
                         }
                     }
@@ -258,6 +273,7 @@ impl ResponsesClient {
 #[derive(Debug, Clone)]
 pub enum StreamEvent {
     TextDelta(String),
+    ReasoningDelta(String),
     ToolCall {
         call_id: String,
         name: String,

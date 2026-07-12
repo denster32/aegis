@@ -7,7 +7,7 @@ pub struct CreateResponseRequest {
     pub model: String,
     pub input: Vec<InputItem>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tools: Option<Vec<ToolDef>>,
+    pub tools: Option<Vec<ToolSpec>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_choice: Option<ToolChoice>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -27,6 +27,43 @@ pub struct CreateResponseRequest {
     pub text: Option<TextConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub include: Option<Vec<String>>,
+    /// Grok 4.5 reasoning depth (Responses API: reasoning.effort).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning: Option<ReasoningConfig>,
+    /// Sticky cache routing key — highly recommended for multi-turn agents.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt_cache_key: Option<String>,
+}
+
+/// Controls reasoning depth for grok-4.5 (default on API is high if omitted).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReasoningConfig {
+    pub effort: String, // "low" | "medium" | "high"
+}
+
+impl ReasoningConfig {
+    pub fn low() -> Self {
+        Self {
+            effort: "low".into(),
+        }
+    }
+    pub fn medium() -> Self {
+        Self {
+            effort: "medium".into(),
+        }
+    }
+    pub fn high() -> Self {
+        Self {
+            effort: "high".into(),
+        }
+    }
+    pub fn from_str(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "low" => Self::low(),
+            "medium" => Self::medium(),
+            _ => Self::high(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,6 +111,13 @@ pub enum MessageContent {
 pub enum ContentPart {
     InputText { text: String },
     OutputText { text: String },
+    /// Multimodal image input (data URL or https URL)
+    InputImage {
+        #[serde(default)]
+        image_url: Option<String>,
+        #[serde(default)]
+        detail: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,6 +138,39 @@ impl FunctionCallOutput {
     }
 }
 
+/// Client function tool or xAI server-side built-in tool.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ToolSpec {
+    Function(ToolDef),
+    /// Built-in: web_search | x_search | code_execution
+    Server(ServerTool),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServerTool {
+    #[serde(rename = "type")]
+    pub kind: String,
+}
+
+impl ServerTool {
+    pub fn web_search() -> ToolSpec {
+        ToolSpec::Server(Self {
+            kind: "web_search".into(),
+        })
+    }
+    pub fn x_search() -> ToolSpec {
+        ToolSpec::Server(Self {
+            kind: "x_search".into(),
+        })
+    }
+    pub fn code_execution() -> ToolSpec {
+        ToolSpec::Server(Self {
+            kind: "code_execution".into(),
+        })
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolDef {
     #[serde(rename = "type")]
@@ -111,6 +188,10 @@ impl ToolDef {
             description: description.into(),
             parameters,
         }
+    }
+
+    pub fn as_spec(self) -> ToolSpec {
+        ToolSpec::Function(self)
     }
 }
 
@@ -161,6 +242,51 @@ pub struct Usage {
     pub output_tokens: Option<u64>,
     #[serde(default)]
     pub total_tokens: Option<u64>,
+    #[serde(default)]
+    pub reasoning_tokens: Option<u64>,
+    /// Nested details when API provides cache hits
+    #[serde(default)]
+    pub input_tokens_details: Option<InputTokenDetails>,
+    #[serde(default)]
+    pub output_tokens_details: Option<OutputTokenDetails>,
+    #[serde(default)]
+    pub prompt_tokens_details: Option<InputTokenDetails>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct InputTokenDetails {
+    #[serde(default)]
+    pub cached_tokens: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct OutputTokenDetails {
+    #[serde(default)]
+    pub reasoning_tokens: Option<u64>,
+}
+
+impl Usage {
+    pub fn cached_tokens(&self) -> u64 {
+        self.input_tokens_details
+            .as_ref()
+            .and_then(|d| d.cached_tokens)
+            .or_else(|| {
+                self.prompt_tokens_details
+                    .as_ref()
+                    .and_then(|d| d.cached_tokens)
+            })
+            .unwrap_or(0)
+    }
+
+    pub fn reasoning_token_count(&self) -> u64 {
+        self.reasoning_tokens
+            .or_else(|| {
+                self.output_tokens_details
+                    .as_ref()
+                    .and_then(|d| d.reasoning_tokens)
+            })
+            .unwrap_or(0)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -288,4 +414,34 @@ pub enum XaiError {
     Json(#[from] serde_json::Error),
     #[error("{0}")]
     Other(String),
+}
+
+#[cfg(test)]
+mod grok45_tests {
+    use super::*;
+
+    #[test]
+    fn request_serializes_reasoning_and_cache_key() {
+        let req = CreateResponseRequest {
+            model: "grok-4.5".into(),
+            input: vec![user_msg("hi")],
+            tools: Some(vec![ServerTool::web_search(), ServerTool::code_execution()]),
+            tool_choice: None,
+            previous_response_id: None,
+            store: Some(true),
+            stream: None,
+            temperature: None,
+            max_output_tokens: None,
+            parallel_tool_calls: Some(true),
+            text: None,
+            include: None,
+            reasoning: Some(ReasoningConfig::low()),
+            prompt_cache_key: Some("sess-123".into()),
+        };
+        let v = serde_json::to_value(&req).unwrap();
+        assert_eq!(v["reasoning"]["effort"], "low");
+        assert_eq!(v["prompt_cache_key"], "sess-123");
+        assert!(v["tools"].as_array().unwrap().iter().any(|t| t["type"] == "web_search"));
+        assert!(v["tools"].as_array().unwrap().iter().any(|t| t["type"] == "code_execution"));
+    }
 }

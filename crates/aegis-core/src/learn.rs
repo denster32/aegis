@@ -161,6 +161,8 @@ impl LearnRuntime {
                 },
             }),
             include: None,
+            reasoning: Some(aegis_xai::ReasoningConfig::high()),
+            prompt_cache_key: Some(format!("aegis-{}", std::process::id())),
         };
 
         let text = match client.create(req).await {
