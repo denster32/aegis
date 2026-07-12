@@ -43,4 +43,4 @@ Under `crates/aegis-core/src/`: dream, factory, qa, readiness_v2, review, wiki, 
 
 Per-project state in `.aegis/` (MEMORY, LESSONS, FAILURES, SKILLS, missions, dreams, nexus/).
 
-See [docs/architecture.md](../architecture.md) · [docs/nexus.md](../nexus.md).
+See [docs/architecture.md](https://github.com/denster32/aegis/blob/main/docs/architecture.md) · [Nexus](Nexus.md).

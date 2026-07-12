@@ -54,4 +54,4 @@ plan → Mission Control → features → validate → reflect
 
 ## Related
 
-- [Home](Home.md) · [Architecture](Architecture.md) · [Commands](Commands.md) · [Conventions](Conventions.md)
+- [Home](Home.md) · [Architecture](Architecture.md) · [Commands](Commands.md) · [Nexus](Nexus.md) · [Conventions](Conventions.md) · [Nexus](Nexus.md)

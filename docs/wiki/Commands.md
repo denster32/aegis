@@ -66,7 +66,7 @@ aegis missions run <id>
 | `aegis compress [--local]` | Neural summary |
 | `aegis hardware probe\|policy` | Host probe / throttle |
 
-See [nexus.md](../nexus.md).
+See [Nexus](Nexus.md).
 
 ## Dev / CI
 

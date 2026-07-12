@@ -14,6 +14,7 @@
   <img src="https://img.shields.io/badge/rust-1.96+-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="rust"/>
   <img src="https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="license"/>
   <img src="https://img.shields.io/badge/ui-monochrome-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="ui"/>
+  <a href="https://github.com/denster32/aegis/wiki"><img src="https://img.shields.io/badge/wiki-docs-lightgrey?style=flat-square&labelColor=000000&color=ffffff" alt="wiki"/></a>
 </p>
 
 <p align="center">
@@ -135,6 +136,7 @@ aegis (CLI)
 
 | | |
 |---|---|
+| [**Wiki**](https://github.com/denster32/aegis/wiki) | GitHub Wiki (synced from [docs/wiki/](docs/wiki/)) |
 | [features.md](docs/features.md) | Feature matrix |
 | [nexus.md](docs/nexus.md) | Living immune system |
 | [architecture.md](docs/architecture.md) | Crates |

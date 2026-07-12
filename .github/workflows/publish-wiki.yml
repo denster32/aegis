@@ -1,0 +1,27 @@
+name: Publish Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/wiki/**"
+      - "docs/nexus.md"
+      - ".github/workflows/publish-wiki.yml"
+      - "scripts/publish_wiki.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish docs/wiki → GitHub Wiki
+        env:
+          # Prefer classic PAT secret with repo scope if GITHUB_TOKEN cannot create wiki
+          GH_TOKEN: ${{ secrets.WIKI_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: ./scripts/publish_wiki.sh
